@@ -371,7 +371,7 @@ namespace WinFormsLib
             return await TryGetGeoObjectAsync($"reverse?format=json&lat={lat}&lon={lon}");
         }
 
-        public static async Task<GeoCoordinates?> ExtractExifGPSCoords(string videoPath)
+        public static GeoCoordinates? ExtractExifGPSCoords(string videoPath)
         {
             GeoCoordinates? geoCoords = null;
             try
@@ -379,7 +379,7 @@ namespace WinFormsLib
                 string args = @$"-p {DOUBLE_QUOTE}{ExifWrapper.ToolFmtPath}{DOUBLE_QUOTE} -ee {DOUBLE_QUOTE}{videoPath}{DOUBLE_QUOTE}";
                 ExifWrapper.Tool.StartInfo.Arguments = args;
                 ExifWrapper.Tool.Start();
-                string output = await ExifWrapper.Tool.StandardOutput.ReadToEndAsync();
+                string output = ExifWrapper.Tool.StandardOutput.ReadToEnd();
                 ExifWrapper.Tool.WaitForExit();
                 Map<string, double> m = new(output);
                 geoCoords = m.Any() ? new(m["lat"], m["lng"]) : new();
