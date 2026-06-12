@@ -102,10 +102,10 @@ namespace WinFormsLib
                 Name = $"Button{globalStringValue}",
                 Margin = (Padding)margin,
                 MinimumSize = BUTTON_SIZE_MINIMUM,
-                Size = GetMaxSize(new[] { globalStringValue }, font, PADDING_MINIMUM, BUTTON_SIZE_MINIMUM),
+                Size = GetMaxSize([globalStringValue], font, PADDING_MINIMUM, BUTTON_SIZE_MINIMUM),
                 Text = globalStringValue
             };
-            button.Disposed += (object? sender, EventArgs e) => { button.ClearEventHandlers(); };
+            button.Disposed += (sender, e) => { button.ClearEventHandlers(); };
             return button;
         }
 
@@ -157,13 +157,15 @@ namespace WinFormsLib
             {
                 if (GetButton(dialogResultFlag.GetGlobalStringValue(), control.Font, control.Margin) is Button button)
                 {
-                    Form form = control.FindForm();
-                    SetAcceptOrCancelButton(button, dialogResultFlag, form);
-                    DialogResult dialogResult = dialogResultFlag.GetValue<DialogResult>();
-                    button.DialogResult = dialogResult;
-                    button.Click += (object? sender, EventArgs e) => { form.DialogResult = dialogResult; };
-                    control.Controls.Add(button);
-                    return button;
+                    if (control.FindForm() is Form form)
+                    {
+                        SetAcceptOrCancelButton(button, dialogResultFlag, form);
+                        DialogResult dialogResult = dialogResultFlag.GetValue<DialogResult>();
+                        button.DialogResult = dialogResult;
+                        button.Click += (sender, e) => { form.DialogResult = dialogResult; };
+                        control.Controls.Add(button);
+                        return button;
+                    }
                 }
                 return null;
             }
@@ -172,26 +174,28 @@ namespace WinFormsLib
 
             public static Button[] AddButtons(Control control, DialogResultFlags dialogResultFlags)
             {
-                Form form = control.FindForm();
-                List<Button> buttons = new();
-                foreach (DialogResultFlag dialogResultFlag in dialogResultFlags.ToEnum<DialogResultFlag>().GetContainingFlags())
+                List<Button> buttons = [];
+                if (control.FindForm() is Form form)
                 {
-                    if (GetButton(dialogResultFlag.GetGlobalStringValue(), control.Font, control.Margin) is Button button)
+                    foreach (DialogResultFlag dialogResultFlag in dialogResultFlags.ToEnum<DialogResultFlag>().GetContainingFlags())
                     {
-                        SetAcceptOrCancelButton(button, dialogResultFlag, form);
-                        DialogResult dialogResult = dialogResultFlag.GetValue<DialogResult>();
-                        button.DialogResult = dialogResult;
-                        button.Click += (object? sender, EventArgs e) => { form.DialogResult = dialogResult; };
-                        buttons.Add(button);
+                        if (GetButton(dialogResultFlag.GetGlobalStringValue(), control.Font, control.Margin) is Button button)
+                        {
+                            SetAcceptOrCancelButton(button, dialogResultFlag, form);
+                            DialogResult dialogResult = dialogResultFlag.GetValue<DialogResult>();
+                            button.DialogResult = dialogResult;
+                            button.Click += (sender, e) => { form.DialogResult = dialogResult; };
+                            buttons.Add(button);
+                        }
+                    }
+                    Size size = GetMaxSize([.. buttons.Select(x => x.Text)], control.Font, PADDING_MINIMUM, BUTTON_SIZE_MINIMUM);
+                    foreach (Button button in buttons)
+                    {
+                        button.Size = size;
+                        control.Controls.Add(button);
                     }
                 }
-                Size size = GetMaxSize(buttons.Select(x => x.Text).ToArray(), control.Font, PADDING_MINIMUM, BUTTON_SIZE_MINIMUM);
-                foreach (Button button in buttons)
-                {
-                    button.Size = size;
-                    control.Controls.Add(button);
-                }
-                return buttons.ToArray();
+                return [.. buttons];
             }
 
             public static Button[] AddButtons(Control control, MessageBoxButtons messageBoxButtons) => AddButtons(control, GetDialogResultFlags(messageBoxButtons));
@@ -212,7 +216,7 @@ namespace WinFormsLib
 
             public static Button[] AddButtons(Control control, EditButtons editButtons)
             {
-                List<Button> buttons = new();
+                List<Button> buttons = [];
                 foreach (EditButton editButton in editButtons.ToEnum<EditButton>().GetContainingFlags())
                 {
                     if (GetButton(editButton.GetGlobalStringValue(), control.Font, control.Margin) is Button button)
@@ -221,13 +225,13 @@ namespace WinFormsLib
                         buttons.Add(button);
                     }
                 }
-                Size size = GetMaxSize(buttons.Select(x => x.Text).ToArray(), control.Font, PADDING_MINIMUM, BUTTON_SIZE_MINIMUM);
+                Size size = GetMaxSize([.. buttons.Select(x => x.Text)], control.Font, PADDING_MINIMUM, BUTTON_SIZE_MINIMUM);
                 foreach (Button button in buttons)
                 {
                     button.Size = size;
                     control.Controls.Add(button);
                 }
-                return buttons.ToArray();
+                return [.. buttons];
             }
         }
     }

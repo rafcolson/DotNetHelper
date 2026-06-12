@@ -7,7 +7,7 @@ namespace WinFormsLib
         public static T? GetAssemblyAttribute<T>(this Assembly super)
         {
             object[] attributes = super.GetCustomAttributes(typeof(T), false);
-            return attributes.Any() ? (T)attributes[0] : default;
+            return attributes.Length != 0 ? (T)attributes[0] : default;
         }
 
         public static string GetSimpleName(this Assembly super) => super.GetName().Name is string s ? s : string.Empty;

@@ -28,11 +28,8 @@ namespace WinFormsLib
 
         private static Color[] GetColors()
         {
-            List<Color> colors = new();
-            colors.AddRange(GetBrightColors());
-            colors.AddRange(GetHueColors());
-            colors.AddRange(GetBasicColors());
-            List<HSVColor> hsvColors = new();
+            List<Color> colors = [.. GetBrightColors(), .. GetHueColors(), .. GetBasicColors()];
+            List<HSVColor> hsvColors = [];
             foreach (Color c in new HashSet<Color>(colors))
             {
                 hsvColors.Add(c.ToHSVColor());
@@ -43,23 +40,19 @@ namespace WinFormsLib
             {
                 colors.Add(hsv.ToColor());
             }
-            return colors.ToArray();
+            return [.. colors];
         }
 
         private static string[] GetKnownColorNames()
         {
-            List<string> colorNames = new();
-            foreach (string n in Enum.GetNames<KnownColor>())
-            {
-                colorNames.Add(n);
-            }
-            return colorNames.ToArray();
+            List<string> colorNames = [.. Enum.GetNames<KnownColor>()];
+            return [.. colorNames];
         }
 
         private static Color[] GetKnownColors()
         {
-            List<KnownColor> knownColors = Enum.GetValues<KnownColor>().ToList();
-            HashSet<Color> colors = new();
+            List<KnownColor> knownColors = [.. Enum.GetValues<KnownColor>()];
+            HashSet<Color> colors = [];
             foreach (KnownColor knowColor in knownColors)
             {
                 colors.Add(Color.FromKnownColor(knowColor));
@@ -67,7 +60,7 @@ namespace WinFormsLib
             colors.Remove(Color.Black);
             colors.Remove(Color.White);
             colors.Remove(Color.Transparent);
-            List<HSVColor> hsvColors = new();
+            List<HSVColor> hsvColors = [];
             foreach (Color c in colors)
             {
                 hsvColors.Add(c.ToHSVColor());
@@ -78,13 +71,13 @@ namespace WinFormsLib
             {
                 colors.Add(hsv.ToColor());
             }
-            return colors.ToArray();
+            return [.. colors];
         }
 
         private static Color[] GetBrightColors()
         {
-            List<Color> colors = new()
-            {
+            List<Color> colors =
+            [
                 new CMYKColor(0, 1, 1, 0).ToColor(),
                 new CMYKColor(0, 0.6, 1, 0).ToColor(),
                 new CMYKColor(0, 0.3, 1, 0).ToColor(),
@@ -95,8 +88,8 @@ namespace WinFormsLib
                 new CMYKColor(1, 0.7, 0, 0).ToColor(),
                 new CMYKColor(0.6, 1, 0, 0).ToColor(),
                 new CMYKColor(0.3, 0, 0, 0).ToColor()
-            };
-            List<HSVColor> hsvColors = new();
+            ];
+            List<HSVColor> hsvColors = [];
             foreach (Color c in new HashSet<Color>(colors))
             {
                 hsvColors.Add(c.ToHSVColor());
@@ -107,13 +100,13 @@ namespace WinFormsLib
             {
                 colors.Add(hsv.ToColor());
             }
-            return colors.ToArray();
+            return [.. colors];
         }
 
         private static Color[] GetBasicColors()
         {
-            List<Color> colors = new()
-            {
+            List<Color> colors =
+            [
                 new CMYKColor(0, 1, 0, 0).ToColor(), // Magenta
                 new CMYKColor(0, 1, 0, 0.5).ToColor(), // Purple
                 new CMYKColor(0, 0.45, 0, 0.7).ToColor(), // Violet
@@ -126,8 +119,8 @@ namespace WinFormsLib
                 new CMYKColor(0, 0.5, 1, 0).ToColor(), // Orange
                 new CMYKColor(0, 0.71, 0.77, 0.11).ToColor(), // Vermillion
                 new CMYKColor(0, 1, 1, 0).ToColor() // Red
-            };
-            List<HSVColor> hsvColors = new();
+            ];
+            List<HSVColor> hsvColors = [];
             foreach (Color c in new HashSet<Color>(colors))
             {
                 hsvColors.Add(c.ToHSVColor());
@@ -138,37 +131,37 @@ namespace WinFormsLib
             {
                 colors.Add(hsv.ToColor());
             }
-            return colors.ToArray();
+            return [.. colors];
         }
 
         public static Color[] GetHueColors(double saturation = 0.375, double value = 0.95)
         {
-            List<Color> l = new();
+            List<Color> l = [];
             for (int i = 8; i < 360; i += 8)
             {
                 l.Add(new HSVColor(i, saturation, value).ToColor());
             }
-            return l.ToArray();
+            return [.. l];
         }
 
         private static Color[] GetGrayColors()
         {
-            List<Color> l = new();
+            List<Color> l = [];
             for (int i = 32; i <= 128; i += 16)
             {
                 l.Add(new CMYKColor(0, 0, 0, i / 256d).ToColor());
             }
-            return l.ToArray();
+            return [.. l];
         }
 
         private static int[] GetArgbValues(IEnumerable<Color> colors)
         {
-            List<int> l = new();
+            List<int> l = [];
             foreach (Color c in colors)
             {
                 l.Add(c.ToArgb());
             }
-            return l.ToArray();
+            return [.. l];
         }
 
         public static CMYKColor ToCMYKColor(this Color super)

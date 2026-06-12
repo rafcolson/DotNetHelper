@@ -46,7 +46,7 @@ namespace WinFormsLib
             if (!includeCombo)
             {
                 uint i = Convert.ToUInt32(comboFlag);
-                List<T> l = new();
+                List<T> l = [];
                 while (i != 0)
                 {
                     if (relevantFlags.FirstOrDefault() is T f)
@@ -56,9 +56,9 @@ namespace WinFormsLib
                         comboFlag = (T)Enum.ToObject(typeof(T), i);
                     }
                 }
-                return l.ToArray();
+                return [.. l];
             }
-            return relevantFlags.ToArray();
+            return [.. relevantFlags];
         }
 
         public static int GetFlagIndex<T>(this T enumFlag) where T : Enum => Array.IndexOf(Enum.GetValues(typeof(T)), enumFlag);

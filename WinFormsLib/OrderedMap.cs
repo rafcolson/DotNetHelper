@@ -109,9 +109,9 @@ namespace WinFormsLib
 
         public bool ExceptWith(IEnumerable<TKey> keys)
         {
-            HashSet<TKey> hs = GetKeys().ToHashSet();
+            HashSet<TKey> hs = [.. GetKeys()];
             hs.IntersectWith(keys);
-            if (hs.Any())
+            if (hs.Count != 0)
             {
                 foreach (TKey k in hs)
                 {
@@ -124,9 +124,9 @@ namespace WinFormsLib
 
         public bool IntersectWith(IEnumerable<TKey> keys)
         {
-            HashSet<TKey> hs = GetKeys().ToHashSet();
+            HashSet<TKey> hs = [.. GetKeys()];
             hs.ExceptWith(keys);
-            if (hs.Any())
+            if (hs.Count != 0)
             {
                 foreach (TKey k in hs)
                 {
@@ -171,13 +171,13 @@ namespace WinFormsLib
 
         public TKey[] GetKeys(TValue v)
         {
-            List<TKey> l = new();
-            List<KeyValuePair<TKey, TValue>> ie = new((IDictionary<TKey, TValue>)this);
+            List<TKey> l = [];
+            List<KeyValuePair<TKey, TValue>> ie = [.. (IDictionary<TKey, TValue>)this];
             l.AddRange(ie.Where(kvp => v != null && v.Equals(kvp.Value)).Select(x => x.Key));
-            return l.ToArray();
+            return [.. l];
         }
 
-        public TKey[] GetKeys() => Keys.Cast<TKey>().ToArray();
+        public TKey[] GetKeys() => [.. Keys.Cast<TKey>()];
 
         public TValue? GetValue(TKey k) => (TValue?)this[k];
 
@@ -196,7 +196,7 @@ namespace WinFormsLib
 
         public TValue? GetLastValue() => GetValues().ElementAtOrDefault(Count - 1);
 
-        public TValue[] GetValues() => Values.Cast<TValue>().ToArray();
+        public TValue[] GetValues() => [.. Values.Cast<TValue>()];
 
         public int GetIndexOf(TKey k) => Array.IndexOf(GetKeys(), k);
 

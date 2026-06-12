@@ -21,7 +21,7 @@ namespace WinFormsLib
 
         public static T[] GetControls<T>(this Control super, bool recursive = true) where T : Control
         {
-            List<T> l = new();
+            List<T> l = [];
             foreach (Control c in super.Controls)
             {
                 if (recursive)
@@ -33,7 +33,7 @@ namespace WinFormsLib
                     l.Add(t);
                 }
             }
-            return l.ToArray();
+            return [.. l];
         }
 
         private static Control? GetFocusedControl(Control super)

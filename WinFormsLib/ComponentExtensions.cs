@@ -9,7 +9,7 @@ namespace WinFormsLib
             IEnumerable<Component> components;
             if (super is ToolStrip ts) components = ts.Items.Cast<Component>();
             else if (super is Control c) components = c.Controls.Cast<Component>();
-            else components = Enumerable.Empty<Component>();
+            else components = [];
             return components.Concat(components.SelectMany(x => x.GetAllComponents()));
         }
     }

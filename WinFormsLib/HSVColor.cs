@@ -1,21 +1,14 @@
 ﻿namespace WinFormsLib
 {
-    public class HSVColor
+    public class HSVColor(double hue, double saturation, double value)
     {
-        private double _hue;
-        private double _saturation;
-        private double _value;
+        private double _hue = hue;
+        private double _saturation = saturation;
+        private double _value = value;
 
         public double Hue { get => _hue; set => _hue = Math.Min(Math.Max(value, 0d), 360d); }
         public double Saturation { get => _saturation; set => _saturation = Math.Min(Math.Max(value, 0d), 1d); }
         public double Value { get => _value; set => _value = Math.Min(Math.Max(value, 0d), 1d); }
-
-        public HSVColor(double hue, double saturation, double value)
-        {
-            _hue = hue;
-            _saturation = saturation;
-            _value = value;
-        }
 
         public Color ToColor()
         {

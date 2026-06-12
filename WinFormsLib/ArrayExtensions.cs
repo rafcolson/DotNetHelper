@@ -18,12 +18,12 @@ namespace WinFormsLib
 
         public static object? TryNext(this object[] super, object o)
         {
-            return !super.Any() ? null : super[Math.Min(Array.IndexOf(super, o) + 1, super.Length - 1)];
+            return super.Length == 0 ? null : super[Math.Min(Array.IndexOf(super, o) + 1, super.Length - 1)];
         }
 
         public static object? TryPrevious(this object[] super, object o)
         {
-            return !super.Any() ? null : super[Math.Max(Array.IndexOf(super, o) - 1, 0)];
+            return super.Length == 0 ? null : super[Math.Max(Array.IndexOf(super, o) - 1, 0)];
         }
 
         public static object? TryClosest(this object[] super, object o)
@@ -38,7 +38,7 @@ namespace WinFormsLib
             while ((super.Contains(s)))
             {
                 string d = s[^1..].ToDigits();
-                if (d.Any())
+                if (d.Length != 0)
                 {
                     int i = int.Parse(d);
                     int j = 0;
@@ -60,7 +60,7 @@ namespace WinFormsLib
             {
                 return s;
             }
-            return s.Trim(new char[] { LEFT_SQUARE_BRACKET, RIGHT_SQUARE_BRACKET });
+            return s.Trim([LEFT_SQUARE_BRACKET, RIGHT_SQUARE_BRACKET]);
         }
     }
 }

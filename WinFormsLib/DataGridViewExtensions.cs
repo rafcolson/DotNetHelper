@@ -18,7 +18,7 @@
             }
             else
             {
-                int i = n == 1 ? super.Rows.Add() : super.Rows.Add(values.Skip(1).ToArray());
+                int i = n == 1 ? super.Rows.Add() : super.Rows.Add([.. values.Skip(1)]);
                 row = super.Rows[i];
                 row.HeaderCell.Value = values[0];
             }

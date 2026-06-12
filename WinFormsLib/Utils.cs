@@ -10,7 +10,7 @@ using static WinFormsLib.Constants;
 
 namespace WinFormsLib
 {
-    public static class Utils
+    public static partial class Utils
     {
         private static readonly ToolTip _toolTip = new()
         {
@@ -53,17 +53,15 @@ namespace WinFormsLib
         }
 
         [AttributeUsage(AttributeTargets.Field)]
-        public class ValueAttribute : Attribute
+        public class ValueAttribute(object value) : Attribute
         {
-            public object Value { get; protected set; }
-            public ValueAttribute(object value) => Value = value;
+            public object Value { get; protected set; } = value;
         }
 
         [AttributeUsage(AttributeTargets.Field)]
-        public class GlobalStringValueAttribute : Attribute
+        public class GlobalStringValueAttribute(string name) : Attribute
         {
-            public string Value { get; protected set; }
-            public GlobalStringValueAttribute(string name) => Value = Globals.ResourceManager.GetString(name) is string s ? s : string.Empty;
+            public string Value { get; protected set; } = Globals.ResourceManager.GetString(name) is string s ? s : string.Empty;
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -247,20 +245,20 @@ namespace WinFormsLib
 
         public static string[] GetRawPaths(IEnumerable<string> paths)
         {
-            HashSet<string> hs = new();
+            HashSet<string> hs = [];
             foreach (string path in paths)
             {
                 hs.Add(GetRawPath(path));
             }
-            return hs.ToArray();
+            return [.. hs];
         }
 
         public static string[] GetDirectoryPaths(string directoryPath, bool recursive = false)
         {
-            string[] paths = Array.Empty<string>();
+            string[] paths = [];
             try
             {
-                List<string> l = Directory.EnumerateDirectories(directoryPath, "*.*", SearchOption.TopDirectoryOnly).ToList();
+                List<string> l = [.. Directory.EnumerateDirectories(directoryPath, "*.*", SearchOption.TopDirectoryOnly)];
                 foreach (string dp in l.ToArray())
                 {
                     if (IsSymbolicLink(dp))
@@ -271,14 +269,14 @@ namespace WinFormsLib
                         }
                     }
                 }
-                paths = l.ToArray();
+                paths = [.. l];
                 if (recursive)
                 {
                     foreach (string dp in paths)
                     {
                         l.AddRange(GetDirectoryPaths(dp));
                     }
-                    paths = l.ToArray();
+                    paths = [.. l];
                 }
                 else
                 {
@@ -294,21 +292,21 @@ namespace WinFormsLib
             try
             {
                 SearchOption so = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-                string[] paths = Directory.EnumerateFiles(directoryPath, "*.*", so).ToArray();
+                string[] paths = [.. Directory.EnumerateFiles(directoryPath, "*.*", so)];
                 if (!recursive)
                 {
                     Array.Sort(paths);
                 }
                 return paths;
             }
-            catch { return Array.Empty<string>(); }
+            catch { return []; }
         }
 
         public static string[] GetAllPaths(string directoryPath, bool recursive = false)
         {
             string[] directoryPaths = GetDirectoryPaths(directoryPath, recursive);
             string[] filePaths = GetFilePaths(directoryPath, recursive);
-            return directoryPaths.Concat(filePaths).ToArray();
+            return [.. directoryPaths.Concat(filePaths)];
         }
 
         public static string? GetSpecialFolder(string directoryPath)
@@ -325,12 +323,12 @@ namespace WinFormsLib
 
         public static string[] GetSpecialfolders()
         {
-            List<string> l = new();
-            foreach (Environment.SpecialFolder specialFolder in Enum.GetValues(typeof(Environment.SpecialFolder)))
+            List<string> l = [];
+            foreach (Environment.SpecialFolder specialFolder in Enum.GetValues<Environment.SpecialFolder>())
             {
                 l.Add(Environment.GetFolderPath(specialFolder));
             }
-            return l.ToArray();
+            return [.. l];
         }
 
         public static bool DeleteFile(string path)
@@ -586,7 +584,7 @@ namespace WinFormsLib
         public static int GetMaxWidth(object[] objects, Font font, int marginHorizontal = 0, int minWidth = 0)
         {
             int marginOfError = 2;
-            List<int> l = new() { marginHorizontal + marginOfError, minWidth};
+            List<int> l = [marginHorizontal + marginOfError, minWidth];
             _label.Font = font;
             foreach (object o in objects)
             {
@@ -599,7 +597,7 @@ namespace WinFormsLib
         public static int GetMaxHeight(object[] objects, Font font, int marginVertical = 0, int minHeight = 0)
         {
             int marginOfError = 2;
-            List<int> l = new() { marginVertical + marginOfError, minHeight };
+            List<int> l = [marginVertical + marginOfError, minHeight];
             _label.Font = font;
             foreach (object o in objects)
             {
@@ -628,18 +626,18 @@ namespace WinFormsLib
 
         public static string[] GetUrls(string text)
         {
-            List<string> l = new();
-            Regex regex = new(@"((https?|ftp|file)\://|www.)[A-Za-z0-9\.\-]+(/[A-Za-z0-9\?\&\=;\+!'\(\)\*\-\._~%]*)*", RegexOptions.IgnoreCase);
+            List<string> l = [];
+            Regex regex = CreateUrlRegex();
             l.AddRange(regex.Matches(text).Select(match => match.Value.TrimEnd(PERIOD)));
-            return l.ToArray();
+            return [.. l];
         }
 
         public static LinkLabel.Link[] GetLinkLabelLinks(string text, Dictionary<string, string>? textLinkPairs = null)
         {
-            List<LinkLabel.Link> l = new();
+            List<LinkLabel.Link> l = [];
             textLinkPairs ??= GetUrls(text).ToDictionary(x => x);
             l.AddRange(textLinkPairs.Select(kvp => new LinkLabel.Link(text.IndexOf(kvp.Key), kvp.Key.Length) { LinkData = kvp.Value }));
-            return l.ToArray();
+            return [.. l];
         }
 
         public static string GetValidTwoLetterISOLanguageName(Dictionary<string, string[]> globals, CultureInfo? cultureInfo)
@@ -649,7 +647,7 @@ namespace WinFormsLib
                 cultureInfo = CultureInfo.CurrentCulture;
             }
             string n = cultureInfo.TwoLetterISOLanguageName;
-            string[] supportedLanguages = globals.Keys.ToArray();
+            string[] supportedLanguages = [.. globals.Keys];
             if (!supportedLanguages.Contains(n))
             {
                 n = supportedLanguages[1];
@@ -681,5 +679,8 @@ namespace WinFormsLib
             _toolTip.Dispose();
             _label.Dispose();
         }
+
+        [GeneratedRegex(@"((https?|ftp|file)\://|www.)[A-Za-z0-9\.\-]+(/[A-Za-z0-9\?\&\=;\+!'\(\)\*\-\._~%]*)*", RegexOptions.IgnoreCase, "nl-BE")]
+        private static partial Regex CreateUrlRegex();
     }
 }

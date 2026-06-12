@@ -6,7 +6,7 @@
         {
             DockStyle ds = super.Dock;
             super.Dock = DockStyle.None;
-            super.DropDownWidth = Utils.GetMaxWidth(super.Items.Cast<object>().ToArray(), super.Font);
+            super.DropDownWidth = Utils.GetMaxWidth([.. super.Items.Cast<object>()], super.Font);
             super.Dock = ds;
         }
     }

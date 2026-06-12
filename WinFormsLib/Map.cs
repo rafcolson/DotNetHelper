@@ -88,9 +88,9 @@ namespace WinFormsLib
 
         public bool ExceptWith(IEnumerable<TKey> keys)
         {
-            HashSet<TKey> hs = Keys.ToHashSet();
+            HashSet<TKey> hs = [.. Keys];
             hs.IntersectWith(keys);
-            if (hs.Any())
+            if (hs.Count != 0)
             {
                 foreach (TKey k in hs)
                 {
@@ -103,9 +103,9 @@ namespace WinFormsLib
 
         public bool IntersectWith(IEnumerable<TKey> keys)
         {
-            HashSet<TKey> hs = Keys.ToHashSet();
+            HashSet<TKey> hs = [.. Keys];
             hs.ExceptWith(keys);
-            if (hs.Any())
+            if (hs.Count != 0)
             {
                 foreach (TKey k in hs)
                 {
@@ -120,7 +120,7 @@ namespace WinFormsLib
 
         public void Sort(bool ascending = true)
         {
-            TKey[] keys = Keys.ToArray();
+            TKey[] keys = [.. Keys];
             if (ascending)
             {
                 Array.Sort(keys);
@@ -146,13 +146,13 @@ namespace WinFormsLib
 
         public TKey[] GetKeys(TValue v)
         {
-            List<TKey> l = new();
-            List<KeyValuePair<TKey, TValue>> ie = new(this);
+            List<TKey> l = [];
+            List<KeyValuePair<TKey, TValue>> ie = [.. this];
             l.AddRange(ie.Where(kvp => v != null && v.Equals(kvp.Value)).Select(x => x.Key));
-            return l.ToArray();
+            return [.. l];
         }
 
-        public TKey[] GetKeys() => Keys.ToArray();
+        public TKey[] GetKeys() => [.. Keys];
 
         public TValue GetValue(TKey k) => this[k];
 
@@ -163,11 +163,11 @@ namespace WinFormsLib
             return v;
         }
 
-        public TValue[] GetValues() => Values.ToArray();
+        public TValue[] GetValues() => [.. Values];
 
         public OrderedDictionary ToOrderedDictionary()
         {
-            OrderedDictionary od = new();
+            OrderedDictionary od = [];
             foreach (KeyValuePair<TKey, TValue> kvp in this)
             {
                 od.Add(kvp.Key, kvp.Value);

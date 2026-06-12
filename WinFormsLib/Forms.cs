@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 
 using static WinFormsLib.ToolStripMenuItems;
 using static WinFormsLib.Constants;
@@ -14,7 +13,7 @@ namespace WinFormsLib
         {
             protected override void Dispose(bool disposing)
             {
-                ToolStripMenuItem[] items = Items.Cast<ToolStripMenuItem>().ToArray();
+                ToolStripMenuItem[] items = [.. Items.Cast<ToolStripMenuItem>()];
                 Items.Clear();
                 foreach (ToolStripMenuItem tsmi in items)
                 {
@@ -45,7 +44,7 @@ namespace WinFormsLib
                                 tsmi.Enabled = tb.Focused && Clipboard.ContainsText();
                                 break;
                             case EditMenuItem.SelectAll:
-                                tsmi.Enabled = tb.Focused && tb.Text.Any();
+                                tsmi.Enabled = tb.Focused && tb.Text.Length != 0;
                                 break;
                         }
                     }
@@ -172,6 +171,7 @@ namespace WinFormsLib
         {
             protected readonly CheckBox CheckBox;
 
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public bool Checked { get; set; }
 
             private void MessageCheckBox_CheckChanged(object? sender, EventArgs e) => Checked = CheckBox.Checked;
@@ -195,7 +195,7 @@ namespace WinFormsLib
                     TabStop = false
                 };
                 CheckBox.CheckedChanged += MessageCheckBox_CheckChanged;
-                CheckBox.Disposed += (object? sender, EventArgs e) => CheckBox.CheckedChanged -= MessageCheckBox_CheckChanged;
+                CheckBox.Disposed += (sender, e) => CheckBox.CheckedChanged -= MessageCheckBox_CheckChanged;
 
                 if (string.IsNullOrEmpty(caption))
                 {
@@ -242,11 +242,13 @@ namespace WinFormsLib
         {
             protected readonly TableLayoutPanel ImageTableLayoutPanel;
 
-            private readonly List<Point> _imagePositions = new();
+            private readonly List<Point> _imagePositions = [];
 
             public int SelectedIndex { get; private set; }
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public string CaptionText { get => CaptionLabel.Text; set => CaptionLabel.Text = value; }
 
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public Func<Task>? OnSelectedIndexChanged { get; set; } = null;
 
             private void PictureBox_Click(object? sender, EventArgs? e = null)
@@ -258,9 +260,12 @@ namespace WinFormsLib
                     for (int i = 0; i < _imagePositions.Count; i++)
                     {
                         Point p = _imagePositions[i];
-                        PictureBox pb = (PictureBox)ImageTableLayoutPanel.GetControlFromPosition(p.X, p.Y);
-                        pb.BackColor = SelectedIndex == i ? SystemColors.ControlLightLight : SystemColors.Control;
-                        pb.BorderStyle = SelectedIndex == i ? BorderStyle.Fixed3D : BorderStyle.None;
+                        if (ImageTableLayoutPanel.GetControlFromPosition(p.X, p.Y) is Control ctrl)
+                        {
+                            PictureBox pb = (PictureBox)ctrl;
+                            pb.BackColor = SelectedIndex == i ? SystemColors.ControlLightLight : SystemColors.Control;
+                            pb.BorderStyle = SelectedIndex == i ? BorderStyle.Fixed3D : BorderStyle.None;
+                        }
                     }
                     ImageTableLayoutPanel.ResumeDrawing();
                     OnSelectedIndexChanged?.Invoke();
@@ -344,8 +349,10 @@ namespace WinFormsLib
         {
             protected readonly ComboBox DropDownList;
 
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public int SelectedIndex { get => DropDownList.SelectedIndex; set => DropDownList.SelectedIndex = value; }
-            public object SelectedItem { get => DropDownList.SelectedItem; set => DropDownList.SelectedItem = value; }
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+            public object? SelectedItem { get => DropDownList.SelectedItem; set => DropDownList.SelectedItem = value; }
 
             public DropDownListDialog
             (
@@ -386,13 +393,18 @@ namespace WinFormsLib
 
             protected override void OnClosed(EventArgs e)
             {
-                if (DialogResult == AcceptButton.DialogResult)
+                if (AcceptButton != null && DialogResult == AcceptButton.DialogResult)
                 {
                     for (int i = 0; i < InputTableLayoutPanel.RowCount; i++)
                     {
-                        string k = InputTableLayoutPanel.GetControlFromPosition(0, i).Text;
-                        string v = InputTableLayoutPanel.GetControlFromPosition(1, i).Text;
-                        _input[k] = v;
+                        Control? keyControl = InputTableLayoutPanel.GetControlFromPosition(0, i);
+                        Control? valueControl = InputTableLayoutPanel.GetControlFromPosition(1, i);
+                        if (keyControl is not null && valueControl is not null)
+                        {
+                            string k = keyControl.Text;
+                            string v = valueControl.Text;
+                            _input[k] = v;
+                        }
                     }
                     OnUpdate?.Invoke();
                 }
@@ -407,6 +419,7 @@ namespace WinFormsLib
                 }
             }
 
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public Func<Task>? OnUpdate { get; set; } = null;
 
             public InputDialog
@@ -431,7 +444,7 @@ namespace WinFormsLib
                     Margin = PADDING_MINIMUM,
                     TabStop = false
                 };
-                KeyValuePair<string, object?>[] kvpa = _input.ToArray();
+                KeyValuePair<string, object?>[] kvpa = [.. _input];
                 ColumnStyle cs = kvpa.Length == 1 && string.IsNullOrEmpty(kvpa[0].Key) ? new(SizeType.Absolute, 1) : new(SizeType.AutoSize);
                 InputTableLayoutPanel.ColumnStyles.Add(cs);
                 InputTableLayoutPanel.ColumnStyles.Add(new(SizeType.Percent, 100F));
@@ -468,7 +481,7 @@ namespace WinFormsLib
                         ContextMenuStrip = new EditTextContextMenuStrip(font)
                     };
                     tb.MouseDown += TextBox_MouseDown;
-                    tb.Disposed += (object? sender, EventArgs e) => tb.MouseDown -= TextBox_MouseDown;
+                    tb.Disposed += (sender, e) => tb.MouseDown -= TextBox_MouseDown;
                     InputTableLayoutPanel.Controls.Add(l, 0, i);
                     InputTableLayoutPanel.Controls.Add(tb, 1, i);
                 }
@@ -497,7 +510,7 @@ namespace WinFormsLib
             protected override void OnShown(EventArgs e)
             {
                 Items.Clear();
-                Items.AddRange(_items.ToArray());
+                Items.AddRange([.. _items]);
                 if (Items.Count == 0)
                 {
                     UpdateEditButtons();
@@ -511,7 +524,7 @@ namespace WinFormsLib
 
             protected override void OnClosed(EventArgs e)
             {
-                if (DialogResult == AcceptButton.DialogResult)
+                if (AcceptButton != null && DialogResult == AcceptButton.DialogResult)
                 {
                     _items.Replace(Items.Cast<object>());
                 }
@@ -629,14 +642,19 @@ namespace WinFormsLib
                 EditListBox.SelectedIndex = i;
             }
 
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public Func<Task>? OnAddItem { get; set; } = null;
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public Func<Task>? OnRenameItem { get; set; } = null;
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public Func<Task>? OnEditItem { get; set; } = null;
 
             public ListBox.ObjectCollection Items => EditListBox.Items;
 
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public int SelectedIndex { get => EditListBox.SelectedIndex; set => EditListBox.SelectedIndex = value; }
 
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public object? SelectedItem
             {
                 get => SelectedIndex != -1 ? Items[SelectedIndex] : null;
@@ -706,8 +724,8 @@ namespace WinFormsLib
                 MainTableLayoutPanel.Controls.Add(EditTableLayoutPanel, 0, 1);
                 EditTableLayoutPanel.Controls.Add(EditListBox, 0, 0);
                 EditTableLayoutPanel.Controls.Add(EditFlowLayoutPanel, 1, 0);
-                EditListBox.SelectedIndexChanged += (object? sender, EventArgs e) => UpdateEditButtons();
-                EditListBox.Disposed += (object? sender, EventArgs e) => EditListBox.ClearEventHandlers();
+                EditListBox.SelectedIndexChanged += (sender, e) => UpdateEditButtons();
+                EditListBox.Disposed += (sender, e) => EditListBox.ClearEventHandlers();
                 foreach (Button editButton in DialogEditButtons.AddButtons(EditFlowLayoutPanel, editButtons))
                 {
                     switch (editButton.Tag)

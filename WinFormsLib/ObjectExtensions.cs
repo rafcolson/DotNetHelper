@@ -34,7 +34,7 @@ namespace WinFormsLib
 
         public static string ToJson(this object super, JsonConverter converter, JavaScriptEncoder? encoder = null)
         {
-            return super.ToJson(new JsonConverter[] { converter }, encoder);
+            return super.ToJson([converter], encoder);
         }
     }
 }

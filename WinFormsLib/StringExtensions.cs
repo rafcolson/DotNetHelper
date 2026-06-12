@@ -13,7 +13,7 @@ namespace WinFormsLib
 
         public static byte[] ToBytes(this string super) => System.Text.Encoding.UTF8.GetBytes(super);
 
-        public static string[] ToLines(this string super) => super.Split(new string[] { LINE_FEED.ToString() }, StringSplitOptions.None);
+        public static string[] ToLines(this string super) => super.Split([LINE_FEED.ToString()], StringSplitOptions.None);
 
         public static string ToProper(this string super) => CULTURE_INFO_DEFAULT.TextInfo.ToTitleCase(super);
 
@@ -52,7 +52,7 @@ namespace WinFormsLib
             {
                 string first = super[..i];
                 string last = super[(i + delimiter.Length)..];
-                return new string[] { first, last };
+                return [first, last];
             }
             return null;
         }
@@ -66,7 +66,7 @@ namespace WinFormsLib
             {
                 string first = super[..i];
                 string last = super[(i + delimiter.Length)..];
-                return new string[] { first, last };
+                return [first, last];
             }
             return null;
         }
@@ -77,7 +77,7 @@ namespace WinFormsLib
         {
             IEnumerable<string> sa = super.Split
             (
-                new[] { HYPHEN, UNDERSCORE },
+                [HYPHEN, UNDERSCORE],
                 StringSplitOptions.RemoveEmptyEntries).Select(x => x[..1].ToUpper() + x[1..].ToLower()
             );
             return string.Concat(sa);

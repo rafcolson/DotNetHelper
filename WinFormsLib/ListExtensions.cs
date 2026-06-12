@@ -2,7 +2,7 @@
 {
     public static class ListExtensions
     {
-        public static List<T> Clone<T>(this List<T> super) => new(super);
+        public static List<T> Clone<T>(this List<T> super) => [.. super];
 
         public static void Replace<T>(this List<T> super, IEnumerable<T> other)
         {

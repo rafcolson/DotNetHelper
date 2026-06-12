@@ -199,7 +199,7 @@ namespace WinFormsLib
 
             public static double GetDecimalDegrees(double[] degreesMinutesSeconds, string cardinalDirection)
             {
-                int sign = cardinalDirection.ToUpper() == $"{N_UPPER}" || cardinalDirection.ToUpper() == $"{E_UPPER}" ? 1 : -1;
+                int sign = cardinalDirection.Equals($"{N_UPPER}", StringComparison.CurrentCultureIgnoreCase) || cardinalDirection.Equals($"{E_UPPER}", StringComparison.CurrentCultureIgnoreCase) ? 1 : -1;
                 return sign * (degreesMinutesSeconds[0] + degreesMinutesSeconds[1] / F + degreesMinutesSeconds[2] / (F * F));
             }
 
@@ -210,7 +210,7 @@ namespace WinFormsLib
                 double minTmp = (degAbs - deg) * F;
                 double min = Math.Truncate(minTmp);
                 double sec = (minTmp - min) * F;
-                return new double[] { deg, min, sec };
+                return [deg, min, sec];
             }
 
             public static double GetDistance(double lat1, double lon1, double lat2, double lon2)
@@ -231,7 +231,7 @@ namespace WinFormsLib
             public static double[] GetBoundingbox(double latitude, double longitude, double radius)
             {
                 double d = Math.Abs(radius / (111320 * Math.Sqrt(0.5)));
-                return new double[] { latitude - d, latitude + d, longitude - d, longitude + d };
+                return [latitude - d, latitude + d, longitude - d, longitude + d];
             }
 
             public static bool IsInside(double latitude, double longitude, double[] boundingbox)
@@ -292,8 +292,8 @@ namespace WinFormsLib
                 string lonRef = LongitudeWindDirection;
                 double[] latNum = LatitudeCoordinates;
                 double[] lonNum = LongitudeCoordinates;
-                double[] lat = new double[] { Math.Abs(latNum[0]), Math.Abs(latNum[1]), Math.Abs(latNum[2]) };
-                double[] lon = new double[] { Math.Abs(lonNum[0]), Math.Abs(lonNum[1]), Math.Abs(lonNum[2]) };
+                double[] lat = [Math.Abs(latNum[0]), Math.Abs(latNum[1]), Math.Abs(latNum[2])];
+                double[] lon = [Math.Abs(lonNum[0]), Math.Abs(lonNum[1]), Math.Abs(lonNum[2])];
                 string latCoords = $"{lat[0]}{DEGREE_SIGN}{lat[1]}{SINGLE_QUOTE}{Math.Round(lat[2], 4).ToString(CULTURE_INFO_DEFAULT)}{DOUBLE_QUOTE}{latRef}";
                 string lonCoords = $"{lon[0]}{DEGREE_SIGN}{lon[1]}{SINGLE_QUOTE}{Math.Round(lon[2], 4).ToString(CULTURE_INFO_DEFAULT)}{DOUBLE_QUOTE}{lonRef}";
                 return $"{latCoords}{SPACE}{lonCoords}";
@@ -303,7 +303,9 @@ namespace WinFormsLib
         private static async Task<GeoObject?> TryGetGeoObjectAsync(string input)
         {
             string uri = $"https://nominatim.openstreetmap.org/{input}";
-            ProductHeaderValue product = new(Application.ProductName, Application.ProductVersion);
+            string productName = Application.ProductName ?? "UnknownProduct";
+            string productVersion = Application.ProductVersion ?? "1.0";
+            ProductHeaderValue product = new(productName, productVersion);
             _httpClient.DefaultRequestHeaders.UserAgent.Clear();
             _httpClient.DefaultRequestHeaders.UserAgent.Add(new(product));
             GeoObject? geoObject = null;
@@ -321,7 +323,7 @@ namespace WinFormsLib
                     DataContractJsonSerializer dcjs = new(typeof(GeoObject[]), dcjss);
                     if ((GeoObject[]?)dcjs.ReadObject(ms) is GeoObject[] goa)
                     {
-                        List<double> l = new();
+                        List<double> l = [];
                         foreach (GeoObject go in goa)
                         {
                             if (go.boundingbox is double[] bb)
@@ -329,7 +331,7 @@ namespace WinFormsLib
                                 l.Add(GeoCoordinates.GetRadius(bb));
                             }
                         }
-                        int i = l.Any() ? l.IndexOf(l.Max()) : 0;
+                        int i = l.Count != 0 ? l.IndexOf(l.Max()) : 0;
                         geoObject = goa[i];
                     }
                 }

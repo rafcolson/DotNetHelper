@@ -37,7 +37,11 @@ namespace WinFormsLib
         {
             if (sender is ToolStripMenuItem tsmi && tsmi.Tag is EditMenuItem emi)
             {
-                SendKeys.Send(emi.GetValue<string>());
+                string? keys = emi.GetValue<string>();
+                if (!string.IsNullOrEmpty(keys))
+                {
+                    SendKeys.Send(keys);
+                }
             }
         }
 
@@ -52,7 +56,7 @@ namespace WinFormsLib
                 Image = bitmap
             };
             tsmi.Click += eventHandler;
-            tsmi.Disposed += (object? sender, EventArgs e) => tsmi.Click -= eventHandler;
+            tsmi.Disposed += (sender, e) => tsmi.Click -= eventHandler;
             return tsmi;
         }
 
@@ -63,14 +67,14 @@ namespace WinFormsLib
             {
                 return null;
             }
-            string? n = Enum.GetName(typeof(EditMenuItem), editMenuItem);
+            string? n = Enum.GetName(editMenuItem);
             Bitmap? bm = !string.IsNullOrEmpty(n) ? (Bitmap?)Properties.Resources.ResourceManager.GetObject(n) : null;
             return GetToolStripMenuItem(s, ToolStripEditMenuItem_Click, editMenuItem, bm);
         }
 
         public static ToolStripMenuItem[] GetToolStripMenuItems(EditMenuItems editMenuItems = EditMenuItems.UndoCutCopyPasteSelectAll)
         {
-            List<ToolStripMenuItem> toolStripMenuItems = new();
+            List<ToolStripMenuItem> toolStripMenuItems = [];
             foreach (EditMenuItem menuItem in editMenuItems.ToEnum<EditMenuItem>().GetContainingFlags())
             {
                 if (GetToolStripMenuItem(menuItem) is ToolStripMenuItem tsmi)
@@ -78,7 +82,7 @@ namespace WinFormsLib
                     toolStripMenuItems.Add(tsmi);
                 }
             }
-            return toolStripMenuItems.ToArray();
+            return [.. toolStripMenuItems];
         }
     }
 }

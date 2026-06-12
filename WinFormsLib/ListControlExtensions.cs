@@ -14,15 +14,23 @@
 
         public static T? GetItemAt<T>(this ListControl super, int index)
         {
-            return super is ComboBox cb ? (T)cb.Items[index] : super is ListBox lb ? (T)lb.Items[index] : (T?)(object?)null;
+            if (super is ComboBox cb)
+            {
+                return cb.Items[index] is T value ? value : default;
+            }
+            if (super is ListBox lb)
+            {
+                return lb.Items[index] is T value ? value : default;
+            }
+            return default;
         }
 
         public static T[] GetItems<T>(this ListControl super)
         {
-            return super is ComboBox cb ? cb.Items.Cast<T>().ToArray() : super is ListBox lb ? lb.Items.Cast<T>().ToArray() : Array.Empty<T>();
+            return super is ComboBox cb ? [.. cb.Items.Cast<T>()] : super is ListBox lb ? [.. lb.Items.Cast<T>()] : Array.Empty<T>();
         }
 
-        public static T[] TakeItems<T>(this ListControl super, Range range) => super.GetItems<T>().Take(range).ToArray();
+        public static T[] TakeItems<T>(this ListControl super, Range range) => [.. super.GetItems<T>().Take(range)];
 
         public static void RemoveItem(this ListControl super, object item)
         {
@@ -61,7 +69,7 @@
         public static T[] RemoveItems<T>(this ListControl super, Range range)
         {
             T[] items = super.TakeItems<T>(range);
-            super.RemoveItems(items.Cast<object>().ToArray());
+            super.RemoveItems([.. items.Cast<object>()]);
             return items;
         }
 

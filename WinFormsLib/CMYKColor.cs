@@ -1,19 +1,11 @@
 ﻿namespace WinFormsLib
 {
-    public class CMYKColor
+    public class CMYKColor(double cyan, double magenta, double yellow, double black)
     {
-        public double C { get; set; }
-        public double M { get; set; }
-        public double Y { get; set; }
-        public double K { get; set; }
-
-        public CMYKColor(double cyan, double magenta, double yellow, double black)
-        {
-            C = cyan;
-            M = magenta;
-            Y = yellow;
-            K = black;
-        }
+        public double C { get; set; } = cyan;
+        public double M { get; set; } = magenta;
+        public double Y { get; set; } = yellow;
+        public double K { get; set; } = black;
 
         public Color ToColor()
         {

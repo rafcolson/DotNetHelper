@@ -8,7 +8,7 @@ namespace WinFormsLib
         {
             super.Links.Clear();
             links ??= Utils.GetLinkLabelLinks(super.Text);
-            if (links.Any())
+            if (links.Length != 0)
             {
                 foreach (LinkLabel.Link link in links)
                 {
@@ -16,13 +16,20 @@ namespace WinFormsLib
                 }
                 super.LinkClicked += (s, e) =>
                 {
-                    ProcessStartInfo psi = new((string)e.Link.LinkData)
+                    if (e.Link != null)
                     {
-                        UseShellExecute = true,
-                        Verb = "open"
-                    };
-                    Process.Start(psi);
-                    linkClickedAction?.Invoke();
+                        string? linkData = e.Link.LinkData as string;
+                        if (!string.IsNullOrEmpty(linkData))
+                        {
+                            ProcessStartInfo psi = new(linkData)
+                            {
+                                UseShellExecute = true,
+                                Verb = "open"
+                            };
+                            Process.Start(psi);
+                            linkClickedAction?.Invoke();
+                        }
+                    }
                 };
                 super.Disposed += (s, e) => super.ClearEventHandlers();
             }
