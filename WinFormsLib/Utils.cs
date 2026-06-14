@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
@@ -129,9 +129,37 @@ namespace WinFormsLib
 
         public static bool IsDirectory(string path) => File.GetAttributes(path).HasFlag(FileAttributes.Directory);
 
-        public static string? GetTargetFile(string path) => new FileInfo(path).LinkTarget;
+        public static string? GetTargetFile(string path)
+        {
+            try
+            {
+                FileInfo fileInfo = new(path);
+                return fileInfo.ResolveLinkTarget(true)?.FullName ?? GetFullLinkTarget(fileInfo);
+            }
+            catch { return null; }
+        }
 
-        public static string? GetTargetDirectory(string path) => new DirectoryInfo(path).LinkTarget;
+        public static string? GetTargetDirectory(string path)
+        {
+            try
+            {
+                DirectoryInfo directoryInfo = new(path);
+                return directoryInfo.ResolveLinkTarget(true)?.FullName ?? GetFullLinkTarget(directoryInfo);
+            }
+            catch { return null; }
+        }
+
+        private static string? GetFullLinkTarget(FileSystemInfo fileSystemInfo)
+        {
+            string? linkTarget = fileSystemInfo.LinkTarget;
+            if (string.IsNullOrEmpty(linkTarget))
+            {
+                return null;
+            }
+            return Path.IsPathRooted(linkTarget)
+                ? linkTarget
+                : Path.GetFullPath(Path.Join(fileSystemInfo is FileInfo fi ? fi.DirectoryName : ((DirectoryInfo)fileSystemInfo).Parent?.FullName ?? string.Empty, linkTarget));
+        }
 
         public static string GetFileName(string path)
         {
@@ -259,16 +287,6 @@ namespace WinFormsLib
             try
             {
                 List<string> l = [.. Directory.EnumerateDirectories(directoryPath, "*.*", SearchOption.TopDirectoryOnly)];
-                foreach (string dp in l.ToArray())
-                {
-                    if (IsSymbolicLink(dp))
-                    {
-                        if (GetTargetDirectory(dp) is string tp)
-                        {
-                            l.Replace(dp, tp);
-                        }
-                    }
-                }
                 paths = [.. l];
                 if (recursive)
                 {
@@ -569,6 +587,7 @@ namespace WinFormsLib
             TextFormatFlags format = TextFormatFlags.WordBreak
         )
         {
+            int marginOfError = 2;
             font ??= FONT_DEFAULT;
             padding ??= new();
             Padding p = PADDING_DEFAULT + padding.Value;
@@ -578,7 +597,7 @@ namespace WinFormsLib
             double r = (double)proposedSize.Width / proposedSize.Height;
             int h = (int)Math.Ceiling(sqr / r + Math.Sqrt(p.Vertical));
             int w = (int)Math.Ceiling(sqr * r + Math.Sqrt(p.Horizontal));
-            return new(w, h);
+            return new(w, h + marginOfError);
         }
 
         public static int GetMaxWidth(object[] objects, Font font, int marginHorizontal = 0, int minWidth = 0)
