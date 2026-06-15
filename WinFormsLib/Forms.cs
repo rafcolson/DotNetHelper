@@ -531,11 +531,11 @@ namespace WinFormsLib
                 base.OnClosed(e);
             }
 
-            private void AddItem(object? sender, EventArgs e)
+            private async void AddItemAsync(object? sender, EventArgs e)
             {
                 if (OnAddItem != null)
                 {
-                    OnAddItem.Invoke();
+                    await OnAddItem.Invoke();
                     return;
                 }
                 Map<string, object?> m = new() { { string.Empty, string.Empty } };
@@ -571,11 +571,11 @@ namespace WinFormsLib
                 }
             }
 
-            private void RenameItem(object? sender, EventArgs e)
+            private async void RenameItemAsync(object? sender, EventArgs e)
             {
                 if (OnRenameItem != null)
                 {
-                    OnRenameItem.Invoke();
+                    await OnRenameItem.Invoke();
                 }
                 else
                 {
@@ -606,7 +606,13 @@ namespace WinFormsLib
                 UpdateEditButtons();
             }
 
-            private void EditItem(object? sender, EventArgs e) => OnEditItem?.Invoke();
+            private async void EditItemAsync(object? sender, EventArgs e)
+            {
+                if (OnEditItem != null)
+                {
+                    await OnEditItem.Invoke();
+                }
+            }
 
             private void UpdateEditButtons()
             {
@@ -731,13 +737,13 @@ namespace WinFormsLib
                     switch (editButton.Tag)
                     {
                         case EditButton.Add:
-                            editButton.Click += AddItem;
+                            editButton.Click += AddItemAsync;
                             break;
                         case EditButton.Remove:
                             editButton.Click += RemoveItem;
                             break;
                         case EditButton.Rename:
-                            editButton.Click += RenameItem;
+                            editButton.Click += RenameItemAsync;
                             break;
                         case EditButton.MoveUp:
                             editButton.Click += MoveUpItem;
@@ -749,7 +755,7 @@ namespace WinFormsLib
                             editButton.Click += SortItems;
                             break;
                         case EditButton.Edit:
-                            editButton.Click += EditItem;
+                            editButton.Click += EditItemAsync;
                             break;
                     }
                 }

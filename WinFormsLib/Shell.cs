@@ -70,7 +70,7 @@ namespace WinFormsLib
         public ShellProperty<string> ItemType { get; } = ShellPropertyStore.Create(path, "System.ItemType", Path.GetExtension(path));
         public ShellProperty<DateTime?> DateModified { get; } = new ShellProperty<DateTime?>(() => File.Exists(path) || Directory.Exists(path) ? File.GetLastWriteTime(path) : null);
         public ShellProperty<DateTime?> DateCreated { get; } = new ShellProperty<DateTime?>(() => File.Exists(path) || Directory.Exists(path) ? File.GetCreationTime(path) : null);
-        public ShellProperty<ulong?> Size { get; } = new ShellProperty<ulong?>(() => File.Exists(path) ? (ulong)new FileInfo(path).Length : null);
+        public ShellProperty<ulong?> Size { get; } = ShellPropertyStore.Create<ulong?>(path, "System.Size", File.Exists(path) ? (ulong)new FileInfo(path).Length : null);
 
         public ShellProperty<string> Title { get; } = ShellPropertyStore.Create(path, "System.Title", string.Empty);
         public ShellProperty<string> Subject { get; } = ShellPropertyStore.Create(path, "System.Subject", string.Empty);
@@ -162,6 +162,20 @@ namespace WinFormsLib
         public Bitmap? LargeBitmap => _largeBitmap ??= GetBitmap(128);
         public Bitmap? ExtraLargeBitmap => _extraLargeBitmap ??= GetBitmap(256);
 
+        public void Refresh()
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _smallBitmap?.Dispose();
+            _mediumBitmap?.Dispose();
+            _largeBitmap?.Dispose();
+            _extraLargeBitmap?.Dispose();
+            _smallBitmap = null;
+            _mediumBitmap = null;
+            _largeBitmap = null;
+            _extraLargeBitmap = null;
+            ShellImageFactory.NotifyUpdate(_path);
+        }
+
         public void Dispose()
         {
             if (_disposed)
@@ -191,6 +205,11 @@ namespace WinFormsLib
 
     internal static class ShellImageFactory
     {
+        private const uint SHCNE_UPDATEITEM = 0x00002000;
+        private const uint SHCNF_PATHW = 0x0005;
+
+        public static void NotifyUpdate(string path) => SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATHW, path, IntPtr.Zero);
+
         public static Bitmap? GetBitmap(string path, int size)
         {
             IShellItemImageFactory? imageFactory = null;
@@ -230,6 +249,13 @@ namespace WinFormsLib
             IntPtr pbc,
             ref Guid riid,
             [MarshalAs(UnmanagedType.Interface)] out IShellItemImageFactory ppv);
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        private static extern void SHChangeNotify(
+            uint wEventId,
+            uint uFlags,
+            [MarshalAs(UnmanagedType.LPWStr)] string dwItem1,
+            IntPtr dwItem2);
 
         [DllImport("gdi32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -386,7 +412,7 @@ namespace WinFormsLib
             }
             finally
             {
-                PropVariantClear(ref propVariant);
+                _ = PropVariantClear(ref propVariant);
                 Release(propertyStore);
             }
         }
@@ -405,7 +431,7 @@ namespace WinFormsLib
                 propertyStore = GetPropertyStore(path, GetPropertyStoreFlags.ReadWrite);
                 if (propertyStore.SetValue(ref propertyKey, ref propVariant) == 0)
                 {
-                    propertyStore.Commit();
+                    _ = propertyStore.Commit();
                 }
             }
             catch
@@ -413,7 +439,7 @@ namespace WinFormsLib
             }
             finally
             {
-                PropVariantClear(ref propVariant);
+                _ = PropVariantClear(ref propVariant);
                 Release(propertyStore);
             }
         }
@@ -497,6 +523,7 @@ namespace WinFormsLib
         private const ushort VtI4 = 3;
         private const ushort VtUi2 = 18;
         private const ushort VtUi4 = 19;
+        private const ushort VtUi8 = 21;
         private const ushort VtFileTime = 64;
         private const ushort VtLpWStr = 31;
         private const ushort VtVector = 0x1000;
@@ -506,13 +533,16 @@ namespace WinFormsLib
         private ushort _valueType;
 
         [FieldOffset(8)]
-        private int _intValue;
+        private readonly int _intValue;
 
         [FieldOffset(8)]
         private ushort _ushortValue;
 
         [FieldOffset(8)]
-        private uint _uintValue;
+        private readonly uint _uintValue;
+
+        [FieldOffset(8)]
+        private readonly ulong _ulongValue;
 
         [FieldOffset(8)]
         private long _fileTimeValue;
@@ -547,6 +577,21 @@ namespace WinFormsLib
                 return FromStringVector(stringValues);
             }
 
+            if (value is int intValue)
+            {
+                return new PropVariant(intValue);
+            }
+
+            if (value is uint uintValue)
+            {
+                return new PropVariant(uintValue);
+            }
+
+            if (value is ulong ulongValue)
+            {
+                return new PropVariant(ulongValue);
+            }
+
             if (value is DateTime dateTimeValue)
             {
                 return new PropVariant
@@ -569,8 +614,33 @@ namespace WinFormsLib
             {
                 return FromUIntVector(uintValues);
             }
+            if (value is double[] doubleValues)
+            {
+                return FromDoubleVector(doubleValues);
+            }
 
             return new PropVariant { _valueType = VtEmpty };
+        }
+
+        private PropVariant(int value)
+        {
+            this = default;
+            _valueType = VtI4;
+            _intValue = value;
+        }
+
+        private PropVariant(uint value)
+        {
+            this = default;
+            _valueType = VtUi4;
+            _uintValue = value;
+        }
+
+        private PropVariant(ulong value)
+        {
+            this = default;
+            _valueType = VtUi8;
+            _ulongValue = value;
         }
 
         public readonly T ToValue<T>(T defaultValue)
@@ -601,6 +671,22 @@ namespace WinFormsLib
             else if (type == typeof(int) && _valueType == VtUi4)
             {
                 value = unchecked((int)_uintValue);
+            }
+            else if (type == typeof(uint) && _valueType == VtUi4)
+            {
+                value = _uintValue;
+            }
+            else if (type == typeof(uint) && _valueType == VtI4)
+            {
+                value = unchecked((uint)_intValue);
+            }
+            else if (type == typeof(ulong) && _valueType == VtUi8)
+            {
+                value = _ulongValue;
+            }
+            else if (type == typeof(ulong) && _valueType == VtUi4)
+            {
+                value = (ulong)_uintValue;
             }
             else if (type == typeof(double[]) && _valueType == (VtVector | VtR8))
             {
@@ -647,6 +733,18 @@ namespace WinFormsLib
             return new PropVariant
             {
                 _valueType = VtVector | VtUi4,
+                _vectorCount = (uint)values.Length,
+                _vectorPointer = vector,
+            };
+        }
+
+        private static PropVariant FromDoubleVector(double[] values)
+        {
+            IntPtr vector = Marshal.AllocCoTaskMem(sizeof(double) * values.Length);
+            Marshal.Copy(values, 0, vector, values.Length);
+            return new PropVariant
+            {
+                _valueType = VtVector | VtR8,
                 _vectorCount = (uint)values.Length,
                 _vectorPointer = vector,
             };

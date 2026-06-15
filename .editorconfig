@@ -5,3 +5,9 @@ dotnet_diagnostic.CS1591.severity = silent
 
 # IDE1006: Naming Styles
 dotnet_diagnostic.IDE1006.severity = silent
+
+# SYSLIB1054: Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
+dotnet_diagnostic.SYSLIB1054.severity = silent
+
+# SYSLIB1096: Convert to 'GeneratedComInterface'
+dotnet_diagnostic.SYSLIB1096.severity = silent

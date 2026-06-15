@@ -179,19 +179,22 @@ namespace WinFormsLib
 
             private const double F = 60d;
 
+            public bool IsValid { get; set; }
             public double Latitude { get; set; }
             public double Longitude { get; set; }
-            [JsonIgnore]
             public double[]? Boundingbox { get; set; }
 
+
+            [JsonIgnore]
             public string LatitudeWindDirection => GetLatitudeWindDirection(Latitude);
+            [JsonIgnore]
             public string LongitudeWindDirection => GetLongitudeWindDirection(Longitude);
             [JsonIgnore]
             public double[] LatitudeCoordinates => GetDegreesMinutesSeconds(Latitude);
             [JsonIgnore]
             public double[] LongitudeCoordinates => GetDegreesMinutesSeconds(Longitude);
+            [JsonIgnore]
             public int Radius => Boundingbox is double[] bb ? (int)Math.Round(GetRadius(bb)) : 10;
-            public bool IsValid => Latitude != 0 && Longitude != 0;
 
             public static string GetLatitudeWindDirection(double latitude) => latitude >= 0d ? $"{N_UPPER}" : $"{S_UPPER}";
 
@@ -252,14 +255,16 @@ namespace WinFormsLib
             {
                 if (!string.IsNullOrEmpty(json) && JsonSerializer.Deserialize<GeoCoordinates?>(json, JsonSerializerOptions) is GeoCoordinates gc)
                 {
+                    IsValid = gc.IsValid;
                     Latitude = gc.Latitude;
-                    Latitude = gc.Longitude;
+                    Longitude = gc.Longitude;
                     Boundingbox = gc.Boundingbox;
                 }
             }
 
             public GeoCoordinates(double latitude, double longitude, double[]? boundingbox = null)
             {
+                IsValid = true;
                 Latitude = latitude;
                 Longitude = longitude;
                 Boundingbox = boundingbox is double[] bb ? (double[])bb.Clone() : GetBoundingbox(Latitude, Longitude, 10);
@@ -273,6 +278,7 @@ namespace WinFormsLib
                 double[]? boundingbox = null
             )
             {
+                IsValid = true;
                 Latitude = GetDecimalDegrees(latitudeCoordinates, latitudeWindDirection);
                 Longitude = GetDecimalDegrees(longitudeCoordinates, longitudeWindDirection);
                 Boundingbox = boundingbox is double[] bb ? (double[])bb.Clone() : GetBoundingbox(Latitude, Longitude, 10);
@@ -373,7 +379,7 @@ namespace WinFormsLib
             return await TryGetGeoObjectAsync($"reverse?format=json&lat={lat}&lon={lon}");
         }
 
-        public static GeoCoordinates? ExtractExifGPSCoords(string videoPath)
+        public static GeoCoordinates? ReadVideoGPSCoords(string videoPath)
         {
             GeoCoordinates? geoCoords = null;
             try
@@ -388,6 +394,29 @@ namespace WinFormsLib
             }
             catch (Exception e) { Debug.WriteLine(e.Message); }
             return geoCoords;
+        }
+
+        public static bool WriteVideoGPSCoords(string videoPath, GeoCoordinates? geoCoords)
+        {
+            string keysTag = "-Keys:GPSCoordinates=";
+            string userDataTag = "-UserData:GPSCoordinates=";
+
+            if (geoCoords is GeoCoordinates gc && gc.IsValid)
+            {
+                string latitude = gc.Latitude.ToString("+00.0000000;-00.0000000", CULTURE_INFO_DEFAULT);
+                string longitude = gc.Longitude.ToString("+000.0000000;-000.0000000", CULTURE_INFO_DEFAULT);
+                string gps = $"{latitude}{longitude}/";
+                keysTag += gps;
+                userDataTag += gps;
+            }
+
+            string args = $"-overwrite_original \"{keysTag}\" \"{userDataTag}\" \"{videoPath}\"";
+
+            ExifWrapper.Tool.StartInfo.Arguments = args;
+            ExifWrapper.Tool.Start();
+            ExifWrapper.Tool.WaitForExit();
+
+            return ExifWrapper.Tool.ExitCode == 0;
         }
 
         public static void Dispose()
