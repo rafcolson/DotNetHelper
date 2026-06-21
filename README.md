@@ -1,16 +1,18 @@
 ﻿# DotNetHelper
 
+*DotNetHelper* is an open-source project developed and maintained by Raf Colson under the name RacoSoft.
+
 This rather custom-made .NET library was created with the intention of reusing large portions of the code for various software applications, such as [EasyFileManager](https://github.com/rafcolson/EasyFileManager).
 
 License
 -------
-*DotNetHelper* is a free package, but not license-free, mainly because it uses software and services under the terms of several licenses:
+*DotNetHelper* is free of charge and open-source software. Its source code and the third-party software, services, and data it uses remain subject to their respective licenses:
 - [ExifTool](https://exiftool.org) under the [Perl Artistic License](https://dev.perl.org/licenses/artistic.html)
-- [OpenStreetMap](https://www.openstreetmap.org) under the [Open Data Commons Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/) by the [OpenStreetMap Foundation (OSMF)](https://osmfoundation.org).
+- [OpenStreetMap](https://www.openstreetmap.org) data under the [Open Data Commons Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/)
 
-Code created by myself or other contributors may be redistributed and/or modified under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause), which also includes a disclaimer of liability for damages that may be caused while using the package.
+Code developed specifically for *DotNetHelper* by Raf Colson and other contributors is licensed under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause), which includes a disclaimer of liability.
 
-The relevant license notices for this package can be viewed in [LICENSE](https://github.com/rafcolson/DotNetHelper/blob/main/LICENSE).
+The applicable license terms and notices for this software can be viewed in [LICENSE](https://github.com/rafcolson/DotNetHelper/blob/main/LICENSE).
 
 Credits
 -------
