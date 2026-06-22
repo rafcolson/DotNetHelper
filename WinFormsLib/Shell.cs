@@ -8,17 +8,18 @@ namespace WinFormsLib
         private readonly string _path;
         private bool _disposed;
 
-        private ShellObject(string path)
+        private ShellObject(string path, bool fastSystemPropertiesOnly)
         {
             _path = path;
-            Properties = new ShellProperties(path);
+            Properties = new ShellProperties(path, fastSystemPropertiesOnly);
             Thumbnail = new ShellThumbnail(path);
         }
 
+        public bool FastSystemPropertiesOnly => Properties.System.FastSystemPropertiesOnly;
         public ShellProperties Properties { get; }
         public ShellThumbnail Thumbnail { get; }
 
-        public static ShellObject FromParsingName(string path)
+        public static ShellObject FromParsingName(string path, bool fastSystemPropertiesOnly = false)
         {
             if (string.IsNullOrWhiteSpace(path))
             {
@@ -28,7 +29,7 @@ namespace WinFormsLib
             {
                 throw new FileNotFoundException("The shell object path does not exist.", path);
             }
-            return new ShellObject(path);
+            return new ShellObject(path, fastSystemPropertiesOnly);
         }
 
         public void Dispose()
@@ -46,10 +47,16 @@ namespace WinFormsLib
         public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(_path);
     }
 
-    public sealed class ShellProperties(string path)
+    public sealed class ShellProperties
     {
-        public SystemProperties System { get; } = new SystemProperties(path);
-        public ShellPropertyCollection DefaultPropertyCollection { get; } = new ShellPropertyCollection(path);
+        public ShellProperties(string path, bool fastSystemPropertiesOnly = false)
+        {
+            System = new SystemProperties(path, fastSystemPropertiesOnly);
+            DefaultPropertyCollection = new ShellPropertyCollection(path);
+        }
+
+        public SystemProperties System { get; }
+        public ShellPropertyCollection DefaultPropertyCollection { get; }
     }
 
     public sealed class ShellPropertyCollection(string path)
@@ -63,49 +70,116 @@ namespace WinFormsLib
         };
     }
 
-    public sealed class SystemProperties(string path)
+    public sealed class SystemProperties
     {
-        public ShellProperty<int?> PerceivedType { get; } = ShellPropertyStore.Create(path, "System.PerceivedType", ShellPropertyReader.GetPerceivedType(path));
-        public ShellProperty<string> ItemTypeText { get; } = ShellPropertyStore.Create(path, "System.ItemTypeText", ShellPropertyReader.GetItemTypeText(path));
-        public ShellProperty<string> ItemType { get; } = ShellPropertyStore.Create(path, "System.ItemType", Path.GetExtension(path));
-        public ShellProperty<DateTime?> DateModified { get; } = new ShellProperty<DateTime?>(() => File.Exists(path) || Directory.Exists(path) ? File.GetLastWriteTime(path) : null);
-        public ShellProperty<DateTime?> DateCreated { get; } = new ShellProperty<DateTime?>(() => File.Exists(path) || Directory.Exists(path) ? File.GetCreationTime(path) : null);
-        public ShellProperty<ulong?> Size { get; } = ShellPropertyStore.Create<ulong?>(path, "System.Size", File.Exists(path) ? (ulong)new FileInfo(path).Length : null);
+        public SystemProperties(string path, bool fastSystemPropertiesOnly = false)
+        {
+            FastSystemPropertiesOnly = fastSystemPropertiesOnly;
+            GetPropertyStoreFlags flags = GetFlags();
 
-        public ShellProperty<string> Title { get; } = ShellPropertyStore.Create(path, "System.Title", string.Empty);
-        public ShellProperty<string> Subject { get; } = ShellPropertyStore.Create(path, "System.Subject", string.Empty);
-        public ShellProperty<string> Comment { get; } = ShellPropertyStore.Create(path, "System.Comment", string.Empty);
-        public ShellProperty<string[]> Keywords { get; } = ShellPropertyStore.Create(path, "System.Keywords", Array.Empty<string>());
+            PerceivedType = ShellPropertyStore.Create(path, "System.PerceivedType", ShellPropertyReader.GetPerceivedType(path), flags);
+            ItemTypeText = ShellPropertyStore.Create(path, "System.ItemTypeText", ShellPropertyReader.GetItemTypeText(path), flags);
+            ItemType = ShellPropertyStore.Create(path, "System.ItemType", Path.GetExtension(path), flags);
+            DateModified = new ShellProperty<DateTime?>(() => File.Exists(path) || Directory.Exists(path) ? File.GetLastWriteTime(path) : null);
+            DateCreated = new ShellProperty<DateTime?>(() => File.Exists(path) || Directory.Exists(path) ? File.GetCreationTime(path) : null);
+            Size = ShellPropertyStore.Create<ulong?>(path, "System.Size", File.Exists(path) ? (ulong)new FileInfo(path).Length : null, flags);
 
-        public PhotoProperties Photo { get; } = new PhotoProperties(path);
-        public MediaProperties Media { get; } = new MediaProperties(path);
-        public GpsProperties GPS { get; } = new GpsProperties(path);
+            Title = ShellPropertyStore.Create(path, "System.Title", string.Empty, flags);
+            Subject = ShellPropertyStore.Create(path, "System.Subject", string.Empty, flags);
+            Comment = ShellPropertyStore.Create(path, "System.Comment", string.Empty, flags);
+            Keywords = ShellPropertyStore.Create(path, "System.Keywords", Array.Empty<string>(), flags);
+
+            Photo = new PhotoProperties(path, FastSystemPropertiesOnly);
+            Media = new MediaProperties(path, FastSystemPropertiesOnly);
+            GPS = new GpsProperties(path, FastSystemPropertiesOnly);
+        }
+
+        public bool FastSystemPropertiesOnly { get; }
+        public ShellProperty<int?> PerceivedType { get; }
+        public ShellProperty<string> ItemTypeText { get; }
+        public ShellProperty<string> ItemType { get; }
+        public ShellProperty<DateTime?> DateModified { get; }
+        public ShellProperty<DateTime?> DateCreated { get; }
+        public ShellProperty<ulong?> Size { get; }
+
+        public ShellProperty<string> Title { get; }
+        public ShellProperty<string> Subject { get; }
+        public ShellProperty<string> Comment { get; }
+        public ShellProperty<string[]> Keywords { get; }
+
+        public PhotoProperties Photo { get; }
+        public MediaProperties Media { get; }
+        public GpsProperties GPS { get; }
+
+        private GetPropertyStoreFlags GetFlags() => FastSystemPropertiesOnly ? GetPropertyStoreFlags.FastPropertiesOnly : GetPropertyStoreFlags.Default;
     }
 
-    public sealed class PhotoProperties(string path)
+    public sealed class PhotoProperties
     {
-        public ShellProperty<string> CameraManufacturer { get; } = ShellPropertyStore.Create(path, "System.Photo.CameraManufacturer", string.Empty);
-        public ShellProperty<string> CameraModel { get; } = ShellPropertyStore.Create(path, "System.Photo.CameraModel", string.Empty);
-        public ShellProperty<DateTime?> DateTaken { get; } = ShellPropertyStore.Create<DateTime?>(path, "System.Photo.DateTaken", null);
-        public ShellProperty<ushort?> Orientation { get; } = ShellPropertyStore.Create<ushort?>(path, "System.Photo.Orientation", null);
+        public PhotoProperties(string path, bool fastSystemPropertiesOnly = false)
+        {
+            FastSystemPropertiesOnly = fastSystemPropertiesOnly;
+            GetPropertyStoreFlags flags = GetFlags();
+
+            CameraManufacturer = ShellPropertyStore.Create(path, "System.Photo.CameraManufacturer", string.Empty, flags);
+            CameraModel = ShellPropertyStore.Create(path, "System.Photo.CameraModel", string.Empty, flags);
+            DateTaken = ShellPropertyStore.Create<DateTime?>(path, "System.Photo.DateTaken", null, flags);
+            Orientation = ShellPropertyStore.Create<ushort?>(path, "System.Photo.Orientation", null, flags);
+        }
+
+        public bool FastSystemPropertiesOnly { get; }
+        public ShellProperty<string> CameraManufacturer { get; }
+        public ShellProperty<string> CameraModel { get; }
+        public ShellProperty<DateTime?> DateTaken { get; }
+        public ShellProperty<ushort?> Orientation { get; }
+
+        private GetPropertyStoreFlags GetFlags() => FastSystemPropertiesOnly ? GetPropertyStoreFlags.FastPropertiesOnly : GetPropertyStoreFlags.Default;
     }
 
-    public sealed class MediaProperties(string path)
+    public sealed class MediaProperties
     {
-        public ShellProperty<DateTime?> DateEncoded { get; } = ShellPropertyStore.Create<DateTime?>(path, "System.Media.DateEncoded", null);
+        public MediaProperties(string path, bool fastSystemPropertiesOnly = false)
+        {
+            FastSystemPropertiesOnly = fastSystemPropertiesOnly;
+            DateEncoded = ShellPropertyStore.Create<DateTime?>(path, "System.Media.DateEncoded", null, GetFlags());
+        }
+
+        public bool FastSystemPropertiesOnly { get; }
+        public ShellProperty<DateTime?> DateEncoded { get; }
+
+        private GetPropertyStoreFlags GetFlags() => FastSystemPropertiesOnly ? GetPropertyStoreFlags.FastPropertiesOnly : GetPropertyStoreFlags.Default;
     }
 
-    public sealed class GpsProperties(string path)
+    public sealed class GpsProperties
     {
-        public ShellProperty<string> AreaInformation { get; } = ShellPropertyStore.Create(path, "System.GPS.AreaInformation", string.Empty);
-        public ShellProperty<double[]> Latitude { get; } = ShellPropertyStore.Create(path, "System.GPS.Latitude", Array.Empty<double>());
-        public ShellProperty<double[]> Longitude { get; } = ShellPropertyStore.Create(path, "System.GPS.Longitude", Array.Empty<double>());
-        public ShellProperty<string> LatitudeRef { get; } = ShellPropertyStore.Create(path, "System.GPS.LatitudeRef", string.Empty);
-        public ShellProperty<string> LongitudeRef { get; } = ShellPropertyStore.Create(path, "System.GPS.LongitudeRef", string.Empty);
-        public ShellProperty<uint[]> LatitudeNumerator { get; } = ShellPropertyStore.Create(path, "System.GPS.LatitudeNumerator", Array.Empty<uint>());
-        public ShellProperty<uint[]> LongitudeNumerator { get; } = ShellPropertyStore.Create(path, "System.GPS.LongitudeNumerator", Array.Empty<uint>());
-        public ShellProperty<uint[]> LatitudeDenominator { get; } = ShellPropertyStore.Create(path, "System.GPS.LatitudeDenominator", Array.Empty<uint>());
-        public ShellProperty<uint[]> LongitudeDenominator { get; } = ShellPropertyStore.Create(path, "System.GPS.LongitudeDenominator", Array.Empty<uint>());
+        public GpsProperties(string path, bool fastSystemPropertiesOnly = false)
+        {
+            FastSystemPropertiesOnly = fastSystemPropertiesOnly;
+            GetPropertyStoreFlags flags = GetFlags();
+
+            AreaInformation = ShellPropertyStore.Create(path, "System.GPS.AreaInformation", string.Empty, flags);
+            Latitude = ShellPropertyStore.Create(path, "System.GPS.Latitude", Array.Empty<double>(), flags);
+            Longitude = ShellPropertyStore.Create(path, "System.GPS.Longitude", Array.Empty<double>(), flags);
+            LatitudeRef = ShellPropertyStore.Create(path, "System.GPS.LatitudeRef", string.Empty, flags);
+            LongitudeRef = ShellPropertyStore.Create(path, "System.GPS.LongitudeRef", string.Empty, flags);
+            LatitudeNumerator = ShellPropertyStore.Create(path, "System.GPS.LatitudeNumerator", Array.Empty<uint>(), flags);
+            LongitudeNumerator = ShellPropertyStore.Create(path, "System.GPS.LongitudeNumerator", Array.Empty<uint>(), flags);
+            LatitudeDenominator = ShellPropertyStore.Create(path, "System.GPS.LatitudeDenominator", Array.Empty<uint>(), flags);
+            LongitudeDenominator = ShellPropertyStore.Create(path, "System.GPS.LongitudeDenominator", Array.Empty<uint>(), flags);
+        }
+
+        public bool FastSystemPropertiesOnly { get; }
+        public ShellProperty<string> AreaInformation { get; }
+        public ShellProperty<double[]> Latitude { get; }
+        public ShellProperty<double[]> Longitude { get; }
+        public ShellProperty<string> LatitudeRef { get; }
+        public ShellProperty<string> LongitudeRef { get; }
+        public ShellProperty<uint[]> LatitudeNumerator { get; }
+        public ShellProperty<uint[]> LongitudeNumerator { get; }
+        public ShellProperty<uint[]> LatitudeDenominator { get; }
+        public ShellProperty<uint[]> LongitudeDenominator { get; }
+
+        private GetPropertyStoreFlags GetFlags() => FastSystemPropertiesOnly ? GetPropertyStoreFlags.FastPropertiesOnly : GetPropertyStoreFlags.Default;
     }
 
     public sealed class ShellProperty<T>
@@ -383,14 +457,14 @@ namespace WinFormsLib
 
     internal static class ShellPropertyStore
     {
-        public static ShellProperty<T> Create<T>(string path, string canonicalName, T defaultValue)
+        public static ShellProperty<T> Create<T>(string path, string canonicalName, T defaultValue, GetPropertyStoreFlags flags = GetPropertyStoreFlags.Default)
         {
             return new ShellProperty<T>(
-                () => GetValue(path, canonicalName, defaultValue),
+                () => GetValue(path, canonicalName, defaultValue, flags),
                 value => SetValue(path, canonicalName, value));
         }
 
-        private static T GetValue<T>(string path, string canonicalName, T defaultValue)
+        private static T GetValue<T>(string path, string canonicalName, T defaultValue, GetPropertyStoreFlags flags)
         {
             if (!TryGetPropertyKey(canonicalName, out PropertyKey propertyKey))
             {
@@ -401,7 +475,7 @@ namespace WinFormsLib
             PropVariant propVariant = default;
             try
             {
-                propertyStore = GetPropertyStore(path, GetPropertyStoreFlags.Default);
+                propertyStore = GetPropertyStore(path, flags);
                 return propertyStore.GetValue(ref propertyKey, out propVariant) == 0
                     ? propVariant.ToValue(defaultValue)
                     : defaultValue;
@@ -486,6 +560,7 @@ namespace WinFormsLib
     {
         Default = 0,
         ReadWrite = 2,
+        FastPropertiesOnly = 8,
     }
 
     [ComImport]

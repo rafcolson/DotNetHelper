@@ -2,6 +2,7 @@ using System.Text;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
+using System.Management;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 
@@ -128,6 +129,46 @@ namespace WinFormsLib
         public static bool IsValidPath(string path) => !string.IsNullOrEmpty(path) && Directory.Exists(path) || File.Exists(path) && !IsSymbolicLink(path);
 
         public static bool IsDirectory(string path) => File.GetAttributes(path).HasFlag(FileAttributes.Directory);
+
+        public static bool SupportsFileSystemWatcher(string path)
+        {
+            const string DRIVE_TYPE_PROPERTY = "DriveType";
+            const string LOGICAL_DISK_QUERY = "SELECT DriveType FROM Win32_LogicalDisk WHERE DeviceID = '{0}'";
+            const string LOGICAL_DISK_TO_PARTITION_QUERY = "ASSOCIATORS OF {{Win32_LogicalDisk.DeviceID='{0}'}} WHERE AssocClass = Win32_LogicalDiskToPartition";
+
+            string? root = Path.GetPathRoot(path);
+            if (string.IsNullOrEmpty(root) || root.StartsWith(@"\\"))
+            {
+                return true;
+            }
+
+            try
+            {
+                string deviceId = root.TrimEnd(Path.DirectorySeparatorChar);
+                using ManagementObjectSearcher searcher = new(string.Format(LOGICAL_DISK_QUERY, deviceId));
+                foreach (ManagementObject volume in searcher.Get())
+                {
+                    using (volume)
+                    {
+                        uint driveType = Convert.ToUInt32(volume[DRIVE_TYPE_PROPERTY]);
+                        if (driveType != 3)
+                        {
+                            return true;
+                        }
+                    }
+
+                    using ManagementObjectSearcher partitionSearcher = new(string.Format(LOGICAL_DISK_TO_PARTITION_QUERY, deviceId));
+                    foreach (ManagementObject partition in partitionSearcher.Get())
+                    {
+                        partition.Dispose();
+                        return true;
+                    }
+                    return false;
+                }
+            }
+            catch { }
+            return true;
+        }
 
         public static string? GetTargetFile(string path)
         {
