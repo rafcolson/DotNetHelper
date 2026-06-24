@@ -1,8 +1,8 @@
-﻿using System.Text.Json;
-using System.Collections;
-using System.Text.Encodings.Web;
-using System.Text.Json.Serialization;
+﻿using System.Collections;
 using System.Collections.Specialized;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace WinFormsLib
 {
@@ -75,14 +75,14 @@ namespace WinFormsLib
         public Map<TKey, TValue> Intersect(IEnumerable<TKey> keys)
         {
             Map<TKey, TValue> m = new(this);
-            m.IntersectWith(keys);
+            _ = m.IntersectWith(keys);
             return m;
         }
 
         public Map<TKey, TValue> Except(IEnumerable<TKey> keys)
         {
             Map<TKey, TValue> m = new(this);
-            m.ExceptWith(keys);
+            _ = m.ExceptWith(keys);
             return m;
         }
 
@@ -94,7 +94,7 @@ namespace WinFormsLib
             {
                 foreach (TKey k in hs)
                 {
-                    Remove(k);
+                    _ = Remove(k);
                 }
                 return true;
             }
@@ -109,7 +109,7 @@ namespace WinFormsLib
             {
                 foreach (TKey k in hs)
                 {
-                    Remove(k);
+                    _ = Remove(k);
                 }
                 return true;
             }
@@ -159,7 +159,7 @@ namespace WinFormsLib
         public TValue Pop(TKey k)
         {
             TValue v = this[k];
-            Remove(k);
+            _ = Remove(k);
             return v;
         }
 

@@ -1,4 +1,8 @@
-﻿[*.cs]
+[*.{cs,csproj,sln,resx,settings,config,md,txt,rtf,json,xml,xaml,props,targets}]
+end_of_line = lf
+insert_final_newline = true
+
+[*.cs]
 
 # CS1591: Missing XML comment for publicly visible type or member
 dotnet_diagnostic.CS1591.severity = silent

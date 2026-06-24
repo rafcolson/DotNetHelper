@@ -1,4 +1,4 @@
-﻿namespace WinFormsLib
+namespace WinFormsLib
 {
     public static class ListControlExtensions
     {
@@ -14,15 +14,11 @@
 
         public static T? GetItemAt<T>(this ListControl super, int index)
         {
-            if (super is ComboBox cb)
+            return super switch
             {
-                return cb.Items[index] is T value ? value : default;
-            }
-            if (super is ListBox lb)
-            {
-                return lb.Items[index] is T value ? value : default;
-            }
-            return default;
+                ComboBox cb => cb.Items[index] is T value ? value : default,
+                _ => super is ListBox lb ? lb.Items[index] is T value ? value : default : default
+            };
         }
 
         public static T[] GetItems<T>(this ListControl super)
@@ -89,11 +85,11 @@
         {
             if (super is ComboBox comboBox)
             {
-                comboBox.Items.Add(item);
+                _ = comboBox.Items.Add(item);
             }
             else if (super is ListBox listBox)
             {
-                listBox.Items.Add(item);
+                _ = listBox.Items.Add(item);
             }
         }
 

@@ -28,7 +28,7 @@
             {
                 foreach (T v in ie.ToArray())
                 {
-                    super.Remove(v);
+                    _ = super.Remove(v);
                 }
                 return true;
             }
@@ -42,7 +42,7 @@
             {
                 foreach (T v in ie.ToArray())
                 {
-                    super.Remove(v);
+                    _ = super.Remove(v);
                 }
                 return true;
             }

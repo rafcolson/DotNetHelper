@@ -23,8 +23,8 @@
             int i = (int)Math.Round(Math.Floor(h));
             double f = h - i;
             double p = v * (1d - s);
-            double q = v * (1d - s * f);
-            double t = v * (1d - s * (1d - f));
+            double q = v * (1d - (s * f));
+            double t = v * (1d - (s * (1d - f)));
             double r;
             double g;
             double b;

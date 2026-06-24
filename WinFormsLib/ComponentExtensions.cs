@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 
 namespace WinFormsLib
 {
@@ -6,10 +6,7 @@ namespace WinFormsLib
     {
         public static IEnumerable<Component> GetAllComponents(this Component super)
         {
-            IEnumerable<Component> components;
-            if (super is ToolStrip ts) components = ts.Items.Cast<Component>();
-            else if (super is Control c) components = c.Controls.Cast<Component>();
-            else components = [];
+            IEnumerable<Component> components = super is ToolStrip ts ? ts.Items.Cast<Component>() : super is Control c ? c.Controls.Cast<Component>() : [];
             return components.Concat(components.SelectMany(x => x.GetAllComponents()));
         }
     }

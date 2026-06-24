@@ -13,8 +13,8 @@
             Rectangle r = Screen.FromControl(super).WorkingArea;
             super.Location = new Point()
             {
-                X = Math.Max(r.X, r.X + (r.Width - super.Width) / 2),
-                Y = Math.Max(r.Y, r.Y + (r.Height - super.Height) / 2)
+                X = Math.Max(r.X, r.X + ((r.Width - super.Width) / 2)),
+                Y = Math.Max(r.Y, r.Y + ((r.Height - super.Height) / 2))
             };
         }
 

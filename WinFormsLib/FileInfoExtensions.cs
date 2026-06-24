@@ -1,6 +1,6 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
-using System.Diagnostics;
 using System.Text.Json.Serialization;
 
 namespace WinFormsLib
@@ -12,7 +12,7 @@ namespace WinFormsLib
             public override FileInfo Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 return reader.GetString() is string s && !string.IsNullOrEmpty(s)
-                    ? (FileInfo)new(s)
+                    ? new(s)
                     : throw new ArgumentException($"'{nameof(reader)}' cannot be null or empty.", nameof(reader));
             }
 

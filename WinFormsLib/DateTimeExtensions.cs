@@ -1,7 +1,6 @@
-﻿using System.Text.Json;
 using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
-
 using static WinFormsLib.Constants;
 
 namespace WinFormsLib
@@ -132,7 +131,7 @@ namespace WinFormsLib
             DateTime firstThursday = jan1.AddDays(DayOfWeek.Thursday - jan1.DayOfWeek);
             int firstWeek = firstThursday.GetWeek();
             int numWeeks = firstWeek == 1 ? week - 1 : week;
-            return firstThursday.AddDays(numWeeks * NUMBER_OF_DAYS_IN_A_WEEK - 3);
+            return firstThursday.AddDays((numWeeks * NUMBER_OF_DAYS_IN_A_WEEK) - 3);
         }
 
         public static DateTime GetFirstDateOfWeek(this DateTime super, int week = -1)
@@ -185,11 +184,7 @@ namespace WinFormsLib
                 return super.AddHours(n);
             }
             n = super.Hour - maxHour;
-            if (n > 0)
-            {
-                return super.AddHours(-n);
-            }
-            return super;
+            return n > 0 ? super.AddHours(-n) : super;
         }
 
         public static DateTime Clone(this DateTime super) => new(super.Ticks);
@@ -197,7 +192,7 @@ namespace WinFormsLib
         public static DateTime Similar(this DateTime super)
         {
             long ticks = super.Ticks;
-            long i = ticks - 10 * (ticks / 10);
+            long i = ticks - (10 * (ticks / 10));
             long r = ticks - i;
             ticks = r == 9 ? i : i + r + 1;
             return new(ticks);
@@ -218,9 +213,9 @@ namespace WinFormsLib
         public static string ToHourString(this DateTime super) => super.ToString(FORMAT_HOUR);
 
         public static string ToDayOfWeekShort(this DateTime super) => super.ToString(FORMAT_DAY_OF_WEEK_SHORT);
-        
+
         public static string ToDayOfWeekLong(this DateTime super) => super.ToString(FORMAT_DAY_OF_WEEK_LONG);
-        
+
         public static string ToDayOfMonthNumber(this DateTime super) => super.ToString(FORMAT_DAY_OF_MONTH_NUMBER);
     }
 }

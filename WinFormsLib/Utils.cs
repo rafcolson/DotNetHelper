@@ -1,11 +1,10 @@
-using System.Text;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
 using System.Management;
-using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
-
+using System.Text;
+using System.Text.RegularExpressions;
 using static WinFormsLib.Chars;
 using static WinFormsLib.Constants;
 
@@ -28,7 +27,7 @@ namespace WinFormsLib
                 CreateNoWindow = true,
                 UseShellExecute = false,
             };
-            Process.Start(psi);
+            _ = Process.Start(psi);
         }
 
         public enum Language
@@ -125,8 +124,8 @@ namespace WinFormsLib
         public static bool IsValidDirectoryPath(string path) => !string.IsNullOrEmpty(path) && Directory.Exists(path) && !IsSymbolicLink(path);
 
         public static bool IsValidFilePath(string path) => !string.IsNullOrEmpty(path) && File.Exists(path) && !IsSymbolicLink(path);
-        
-        public static bool IsValidPath(string path) => !string.IsNullOrEmpty(path) && Directory.Exists(path) || File.Exists(path) && !IsSymbolicLink(path);
+
+        public static bool IsValidPath(string path) => (!string.IsNullOrEmpty(path) && Directory.Exists(path)) || (File.Exists(path) && !IsSymbolicLink(path));
 
         public static bool IsDirectory(string path) => File.GetAttributes(path).HasFlag(FileAttributes.Directory);
 
@@ -193,11 +192,9 @@ namespace WinFormsLib
         private static string? GetFullLinkTarget(FileSystemInfo fileSystemInfo)
         {
             string? linkTarget = fileSystemInfo.LinkTarget;
-            if (string.IsNullOrEmpty(linkTarget))
-            {
-                return null;
-            }
-            return Path.IsPathRooted(linkTarget)
+            return string.IsNullOrEmpty(linkTarget)
+                ? null
+                : Path.IsPathRooted(linkTarget)
                 ? linkTarget
                 : Path.GetFullPath(Path.Join(fileSystemInfo is FileInfo fi ? fi.DirectoryName : ((DirectoryInfo)fileSystemInfo).Parent?.FullName ?? string.Empty, linkTarget));
         }
@@ -266,11 +263,7 @@ namespace WinFormsLib
             {
                 parentPath = sa1.First();
             }
-            if (fullPath.SplitFirst($"{parentPath}{Path.DirectorySeparatorChar}") is string[] sa2)
-            {
-                return sa2.Last();
-            }
-            return fullPath;
+            return fullPath.SplitFirst($"{parentPath}{Path.DirectorySeparatorChar}") is string[] sa2 ? sa2.Last() : fullPath;
         }
 
         public static string GetPathDuplicate(string path, IEnumerable<string>? excludedPaths = null)
@@ -317,7 +310,7 @@ namespace WinFormsLib
             HashSet<string> hs = [];
             foreach (string path in paths)
             {
-                hs.Add(GetRawPath(path));
+                _ = hs.Add(GetRawPath(path));
             }
             return [.. hs];
         }
@@ -422,7 +415,7 @@ namespace WinFormsLib
             bool ppExists = Directory.Exists(pp);
             if (!ppExists)
             {
-                Directory.CreateDirectory(pp);
+                _ = Directory.CreateDirectory(pp);
             }
             try
             {
@@ -433,7 +426,7 @@ namespace WinFormsLib
             {
                 if (!ppExists)
                 {
-                    DeleteDirectory(pp);
+                    _ = DeleteDirectory(pp);
                 }
                 return false;
             }
@@ -448,7 +441,7 @@ namespace WinFormsLib
             bool dpExists = Directory.Exists(destinationPath);
             if (!dpExists)
             {
-                Directory.CreateDirectory(destinationPath);
+                _ = Directory.CreateDirectory(destinationPath);
             }
             try
             {
@@ -459,7 +452,7 @@ namespace WinFormsLib
             {
                 if (!dpExists)
                 {
-                    DeleteDirectory(destinationPath);
+                    _ = DeleteDirectory(destinationPath);
                 }
                 return false;
             }
@@ -475,7 +468,7 @@ namespace WinFormsLib
             bool ppExists = Directory.Exists(pp);
             if (!ppExists)
             {
-                Directory.CreateDirectory(pp);
+                _ = Directory.CreateDirectory(pp);
             }
             try
             {
@@ -486,7 +479,7 @@ namespace WinFormsLib
             {
                 if (!ppExists)
                 {
-                    DeleteDirectory(pp);
+                    _ = DeleteDirectory(pp);
                 }
                 return false;
             }
@@ -501,7 +494,7 @@ namespace WinFormsLib
             bool dpExists = Directory.Exists(destinationPath);
             if (!dpExists)
             {
-                Directory.CreateDirectory(destinationPath);
+                _ = Directory.CreateDirectory(destinationPath);
             }
             try
             {
@@ -509,7 +502,7 @@ namespace WinFormsLib
                 {
                     string rp = GetRelativePath(sourcePath, sp);
                     string dp = Path.Join(destinationPath, rp);
-                    CopyFile(sp, dp);
+                    _ = CopyFile(sp, dp);
                 }
                 return true;
             }
@@ -517,7 +510,7 @@ namespace WinFormsLib
             {
                 if (!dpExists)
                 {
-                    DeleteDirectory(destinationPath);
+                    _ = DeleteDirectory(destinationPath);
                 }
                 return false;
             }
@@ -531,7 +524,7 @@ namespace WinFormsLib
             }
             else if (!Directory.Exists(parentPath))
             {
-                Directory.CreateDirectory(parentPath);
+                _ = Directory.CreateDirectory(parentPath);
             }
             string rawPath = Path.Join(parentPath, $"{name}{GetExtension(path)}");
             if (rawPath != path)
@@ -577,7 +570,7 @@ namespace WinFormsLib
             Bitmap bitmap = new($"@{path}");
             IntPtr Hicon = bitmap.GetHicon();
             Icon icon = Icon.FromHandle(Hicon);
-            DestroyIcon(icon.Handle);
+            _ = DestroyIcon(icon.Handle);
             return icon;
         }
 
@@ -636,8 +629,8 @@ namespace WinFormsLib
             Size size = TextRenderer.MeasureText(text, font, proposedSize, format);
             double sqr = Math.Sqrt((size.Height + p.Vertical) * (size.Width + p.Horizontal));
             double r = (double)proposedSize.Width / proposedSize.Height;
-            int h = (int)Math.Ceiling(sqr / r + Math.Sqrt(p.Vertical));
-            int w = (int)Math.Ceiling(sqr * r + Math.Sqrt(p.Horizontal));
+            int h = (int)Math.Ceiling((sqr / r) + Math.Sqrt(p.Vertical));
+            int w = (int)Math.Ceiling((sqr * r) + Math.Sqrt(p.Horizontal));
             return new(w, h + marginOfError);
         }
 

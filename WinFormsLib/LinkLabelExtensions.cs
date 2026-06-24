@@ -12,7 +12,7 @@ namespace WinFormsLib
             {
                 foreach (LinkLabel.Link link in links)
                 {
-                    super.Links.Add(link);
+                    _ = super.Links.Add(link);
                 }
                 super.LinkClicked += (s, e) =>
                 {
@@ -26,7 +26,7 @@ namespace WinFormsLib
                                 UseShellExecute = true,
                                 Verb = "open"
                             };
-                            Process.Start(psi);
+                            _ = Process.Start(psi);
                             linkClickedAction?.Invoke();
                         }
                     }

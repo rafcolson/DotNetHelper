@@ -1,12 +1,11 @@
-﻿using System.Runtime.Serialization.Json;
-using System.Text.Json.Serialization;
-using System.Net.Http.Headers;
 using System.Diagnostics;
+using System.Net.Http.Headers;
+using System.Runtime.Serialization.Json;
 using System.Text.Json;
-
-using static WinFormsLib.Utils;
+using System.Text.Json.Serialization;
 using static WinFormsLib.Chars;
 using static WinFormsLib.Constants;
+using static WinFormsLib.Utils;
 
 namespace WinFormsLib
 {
@@ -56,7 +55,7 @@ namespace WinFormsLib
                         GeoCoords = ga.GeoCoords;
                     }
                 }
-                catch {}
+                catch { }
             }
 
             public override string ToString() => this.ToJson();
@@ -96,22 +95,22 @@ namespace WinFormsLib
             {
                 switch (geoAreaDescription)
                 {
-                    case (GeoAreaDescription.Country):
+                    case GeoAreaDescription.Country:
                         return country;
-                    case (GeoAreaDescription.StateOrRegion):
+                    case GeoAreaDescription.StateOrRegion:
                         string sr0 = GetStateOrRegion();
                         return specify && !string.IsNullOrEmpty(country_code) && !string.IsNullOrEmpty(sr0) ? $"{sr0} ({GetCountryCode()})" : sr0;
-                    case (GeoAreaDescription.TownCityOrCounty):
+                    case GeoAreaDescription.TownCityOrCounty:
                         string sr1 = GetStateOrRegion();
                         string townCityOrCounty = GetTownCityOrCounty();
                         return specify && !string.IsNullOrEmpty(sr1) && !string.IsNullOrEmpty(townCityOrCounty) ? $"{townCityOrCounty} ({sr1})" : townCityOrCounty;
-                    case (GeoAreaDescription.NeighbourhoodOrSuburb):
+                    case GeoAreaDescription.NeighbourhoodOrSuburb:
                         string ns0 = GetNeighbourhoodOrSuburb();
                         return specify && !string.IsNullOrEmpty(postcode) && !string.IsNullOrEmpty(ns0) ? $"{ns0} ({postcode})" : ns0;
-                    case (GeoAreaDescription.SquareHamletOrQuarter):
+                    case GeoAreaDescription.SquareHamletOrQuarter:
                         string squareHamletOrQuarter = GetSquareHamletOrQuarter();
                         return specify && !string.IsNullOrEmpty(postcode) && !string.IsNullOrEmpty(squareHamletOrQuarter) ? $"{squareHamletOrQuarter} ({postcode})" : squareHamletOrQuarter;
-                    case (GeoAreaDescription.RoadOrAmenity):
+                    case GeoAreaDescription.RoadOrAmenity:
                         string ra = GetRoadOrAmenity();
                         if (!specify)
                         {
@@ -120,7 +119,7 @@ namespace WinFormsLib
                         string ns1 = GetNeighbourhoodOrSuburb();
                         string suffix = string.IsNullOrEmpty(postcode) ? ns1 : string.IsNullOrEmpty(ns1) ? $"({postcode})" : $"{ns1} ({postcode})";
                         return !string.IsNullOrEmpty(suffix) ? $"{ra}, {suffix}" : ra;
-                    case (GeoAreaDescription.Address):
+                    case GeoAreaDescription.Address:
                         string s0 = !string.IsNullOrEmpty(house_number) ? $"{GetRoadOrAmenity()} {house_number}" : GetRoadOrAmenity();
                         string s1 = GetNeighbourhoodOrSuburb();
                         s1 = string.IsNullOrEmpty(postcode) ? s1 : string.IsNullOrEmpty(s1) ? $"({postcode})" : $"{s1} ({postcode})";
@@ -128,7 +127,8 @@ namespace WinFormsLib
                         return specify && !string.IsNullOrEmpty(country_code) ? $"{address} [{GetCountryCode()}]" : address;
                     default:
                         return ToShortString();
-                };
+                }
+                ;
             }
             public string ToShortString() => GetArea(GeoAreaDescription.Address);
             public override string ToString() => this.ToJson();
@@ -203,7 +203,7 @@ namespace WinFormsLib
             public static double GetDecimalDegrees(double[] degreesMinutesSeconds, string cardinalDirection)
             {
                 int sign = cardinalDirection.Equals($"{N_UPPER}", StringComparison.CurrentCultureIgnoreCase) || cardinalDirection.Equals($"{E_UPPER}", StringComparison.CurrentCultureIgnoreCase) ? 1 : -1;
-                return sign * (degreesMinutesSeconds[0] + degreesMinutesSeconds[1] / F + degreesMinutesSeconds[2] / (F * F));
+                return sign * (degreesMinutesSeconds[0] + (degreesMinutesSeconds[1] / F) + (degreesMinutesSeconds[2] / (F * F)));
             }
 
             public static double[] GetDegreesMinutesSeconds(double decimalDegrees)
@@ -219,8 +219,8 @@ namespace WinFormsLib
             public static double GetDistance(double lat1, double lon1, double lat2, double lon2)
             {
                 double latMid = (lat1 + lat2) * 0.5;
-                double latFac = 111132.92 - 559.82 * Math.Cos(2 * latMid) + 1.175 * Math.Cos(4 * latMid) - 0.0023 * Math.Cos(6 * latMid);
-                double lonFac = 111412.84 * Math.Cos(latMid) - 93.5 * Math.Cos(3 * latMid) + 0.118 * Math.Cos(5 * latMid);
+                double latFac = 111132.92 - (559.82 * Math.Cos(2 * latMid)) + (1.175 * Math.Cos(4 * latMid)) - (0.0023 * Math.Cos(6 * latMid));
+                double lonFac = (111412.84 * Math.Cos(latMid)) - (93.5 * Math.Cos(3 * latMid)) + (0.118 * Math.Cos(5 * latMid));
                 double latDelta = Math.Abs(lat1 - lat2);
                 double lonDelta = Math.Abs(lon1 - lon2);
                 return Math.Sqrt(Math.Pow(latDelta * latFac, 2) + Math.Pow(lonDelta * lonFac, 2));
@@ -318,7 +318,7 @@ namespace WinFormsLib
             try
             {
                 using HttpResponseMessage response = await _httpClient.GetAsync(uri);
-                response.EnsureSuccessStatusCode();
+                _ = response.EnsureSuccessStatusCode();
                 byte[] json = await response.Content.ReadAsByteArrayAsync();
                 //MessageBox.Show(await response.Content.ReadAsStringAsync());
 
@@ -386,7 +386,7 @@ namespace WinFormsLib
             {
                 string args = @$"-p {DOUBLE_QUOTE}{ExifWrapper.ToolFmtPath}{DOUBLE_QUOTE} -ee {DOUBLE_QUOTE}{videoPath}{DOUBLE_QUOTE}";
                 ExifWrapper.Tool.StartInfo.Arguments = args;
-                ExifWrapper.Tool.Start();
+                _ = ExifWrapper.Tool.Start();
                 string output = ExifWrapper.Tool.StandardOutput.ReadToEnd();
                 ExifWrapper.Tool.WaitForExit();
                 Map<string, double> m = new(output);
@@ -413,7 +413,7 @@ namespace WinFormsLib
             string args = $"-overwrite_original \"{keysTag}\" \"{userDataTag}\" \"{videoPath}\"";
 
             ExifWrapper.Tool.StartInfo.Arguments = args;
-            ExifWrapper.Tool.Start();
+            _ = ExifWrapper.Tool.Start();
             ExifWrapper.Tool.WaitForExit();
 
             return ExifWrapper.Tool.ExitCode == 0;

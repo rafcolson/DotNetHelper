@@ -1,4 +1,4 @@
-﻿using static WinFormsLib.Chars;
+using static WinFormsLib.Chars;
 
 namespace WinFormsLib
 {
@@ -35,20 +35,25 @@ namespace WinFormsLib
 
         public static string NextNumerable(this string[] super, string s)
         {
-            while ((super.Contains(s)))
+            while (super.Contains(s))
             {
                 string d = s[^1..].ToDigits();
                 if (d.Length != 0)
                 {
                     int i = int.Parse(d);
                     int j = 0;
-                    while ((!j.Equals(i)))
+                    while (!j.Equals(i))
+                    {
                         j += 1;
+                    }
+
                     j += 1;
                     s = s[0..^1] + j.ToString();
                 }
                 else
+                {
                     s += ZERO;
+                }
             }
             return s;
         }
@@ -56,11 +61,7 @@ namespace WinFormsLib
         public static string ToJson(this object[] super, bool includeBrackets)
         {
             string s = super.ToJson();
-            if (includeBrackets)
-            {
-                return s;
-            }
-            return s.Trim([LEFT_SQUARE_BRACKET, RIGHT_SQUARE_BRACKET]);
+            return includeBrackets ? s : s.Trim([LEFT_SQUARE_BRACKET, RIGHT_SQUARE_BRACKET]);
         }
     }
 }

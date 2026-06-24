@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 namespace WinFormsLib
 {
@@ -29,15 +29,14 @@ namespace WinFormsLib
             return super.GetAssemblyAttribute<AssemblyDefaultAliasAttribute>() is AssemblyDefaultAliasAttribute attr ? attr.DefaultAlias : string.Empty;
         }
 
-        public static string GetVersion(this Assembly super)
-        {
-            return super.GetAssemblyAttribute<AssemblyVersionAttribute>() is AssemblyVersionAttribute attr ? attr.Version : string.Empty;
-        }
+        public static string GetVersion(this Assembly super) => GetFileVersion(super);
 
         public static string GetFileVersion(this Assembly super)
         {
             return super.GetAssemblyAttribute<AssemblyFileVersionAttribute>() is AssemblyFileVersionAttribute attr ? attr.Version : string.Empty;
         }
+
+        public static string GetAssemblyVersion(this Assembly super) => super.GetName().Version?.ToString() ?? string.Empty;
 
         public static string GetInformationalVersion(this Assembly super)
         {
@@ -58,7 +57,6 @@ namespace WinFormsLib
         {
             return super.GetAssemblyAttribute<AssemblyCompanyAttribute>() is AssemblyCompanyAttribute attr ? attr.Company : string.Empty;
         }
-
 
     }
 }

@@ -21,15 +21,11 @@ namespace WinFormsLib
 
         public static ShellObject FromParsingName(string path, bool fastSystemPropertiesOnly = false)
         {
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                throw new ArgumentException($"'{nameof(path)}' cannot be null or empty.", nameof(path));
-            }
-            if (!File.Exists(path) && !Directory.Exists(path))
-            {
-                throw new FileNotFoundException("The shell object path does not exist.", path);
-            }
-            return new ShellObject(path, fastSystemPropertiesOnly);
+            return string.IsNullOrWhiteSpace(path)
+                ? throw new ArgumentException($"'{nameof(path)}' cannot be null or empty.", nameof(path))
+                : !File.Exists(path) && !Directory.Exists(path)
+                ? throw new FileNotFoundException("The shell object path does not exist.", path)
+                : new ShellObject(path, fastSystemPropertiesOnly);
         }
 
         public void Dispose()
@@ -47,16 +43,10 @@ namespace WinFormsLib
         public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(_path);
     }
 
-    public sealed class ShellProperties
+    public sealed class ShellProperties(string path, bool fastSystemPropertiesOnly = false)
     {
-        public ShellProperties(string path, bool fastSystemPropertiesOnly = false)
-        {
-            System = new SystemProperties(path, fastSystemPropertiesOnly);
-            DefaultPropertyCollection = new ShellPropertyCollection(path);
-        }
-
-        public SystemProperties System { get; }
-        public ShellPropertyCollection DefaultPropertyCollection { get; }
+        public SystemProperties System { get; } = new SystemProperties(path, fastSystemPropertiesOnly);
+        public ShellPropertyCollection DefaultPropertyCollection { get; } = new ShellPropertyCollection(path);
     }
 
     public sealed class ShellPropertyCollection(string path)
@@ -293,10 +283,10 @@ namespace WinFormsLib
             {
                 Guid guid = typeof(IShellItemImageFactory).GUID;
                 SHCreateItemFromParsingName(path, IntPtr.Zero, ref guid, out imageFactory);
-                imageFactory.GetImage(new ShellSize(size, size), ShellItemImageFactoryOptions.ThumbnailOnly | ShellItemImageFactoryOptions.BiggerSizeOk, out bitmapHandle);
+                _ = imageFactory.GetImage(new ShellSize(size, size), ShellItemImageFactoryOptions.ThumbnailOnly | ShellItemImageFactoryOptions.BiggerSizeOk, out bitmapHandle);
                 if (bitmapHandle == IntPtr.Zero)
                 {
-                    imageFactory.GetImage(new ShellSize(size, size), ShellItemImageFactoryOptions.IconOnly | ShellItemImageFactoryOptions.BiggerSizeOk, out bitmapHandle);
+                    _ = imageFactory.GetImage(new ShellSize(size, size), ShellItemImageFactoryOptions.IconOnly | ShellItemImageFactoryOptions.BiggerSizeOk, out bitmapHandle);
                 }
                 return bitmapHandle == IntPtr.Zero ? null : Image.FromHbitmap(bitmapHandle);
             }
@@ -308,11 +298,11 @@ namespace WinFormsLib
             {
                 if (bitmapHandle != IntPtr.Zero)
                 {
-                    DeleteObject(bitmapHandle);
+                    _ = DeleteObject(bitmapHandle);
                 }
                 if (imageFactory != null && Marshal.IsComObject(imageFactory))
                 {
-                    Marshal.ReleaseComObject(imageFactory);
+                    _ = Marshal.ReleaseComObject(imageFactory);
                 }
             }
         }
@@ -392,39 +382,21 @@ namespace WinFormsLib
         public static int? GetPerceivedType(string path)
         {
             string extension = Path.GetExtension(path);
-            if (string.IsNullOrEmpty(extension))
-            {
-                return 0;
-            }
-            if (ImageExtensions.Contains(extension))
-            {
-                return 2;
-            }
-            if (AudioExtensions.Contains(extension))
-            {
-                return 3;
-            }
-            if (VideoExtensions.Contains(extension))
-            {
-                return 4;
-            }
-            if (CompressedExtensions.Contains(extension))
-            {
-                return 5;
-            }
-            if (DocumentExtensions.Contains(extension))
-            {
-                return 6;
-            }
-            if (string.Equals(extension, ".exe", StringComparison.OrdinalIgnoreCase))
-            {
-                return 8;
-            }
-            if (string.Equals(extension, ".txt", StringComparison.OrdinalIgnoreCase))
-            {
-                return 1;
-            }
-            return 0;
+            return string.IsNullOrEmpty(extension)
+                ? 0
+                : ImageExtensions.Contains(extension)
+                ? 2
+                : AudioExtensions.Contains(extension)
+                ? 3
+                : VideoExtensions.Contains(extension)
+                ? 4
+                : CompressedExtensions.Contains(extension)
+                ? 5
+                : DocumentExtensions.Contains(extension)
+                ? 6
+                : string.Equals(extension, ".exe", StringComparison.OrdinalIgnoreCase)
+                ? 8
+                : string.Equals(extension, ".txt", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
         }
 
         public static string GetItemTypeText(string path)
@@ -534,7 +506,7 @@ namespace WinFormsLib
         {
             if (comObject != null && Marshal.IsComObject(comObject))
             {
-                Marshal.ReleaseComObject(comObject);
+                _ = Marshal.ReleaseComObject(comObject);
             }
         }
 
@@ -633,68 +605,37 @@ namespace WinFormsLib
 
         public static PropVariant FromValue<T>(T value)
         {
-            if (value == null)
-            {
-                return new PropVariant { _valueType = VtEmpty };
-            }
-
-            if (value is string stringValue)
-            {
-                return new PropVariant
+            return value == null
+                ? new PropVariant { _valueType = VtEmpty }
+                : value is string stringValue
+                ? new PropVariant
                 {
                     _valueType = VtLpWStr,
                     _pointerValue = Marshal.StringToCoTaskMemUni(stringValue),
-                };
-            }
-
-            if (value is string[] stringValues)
-            {
-                return FromStringVector(stringValues);
-            }
-
-            if (value is int intValue)
-            {
-                return new PropVariant(intValue);
-            }
-
-            if (value is uint uintValue)
-            {
-                return new PropVariant(uintValue);
-            }
-
-            if (value is ulong ulongValue)
-            {
-                return new PropVariant(ulongValue);
-            }
-
-            if (value is DateTime dateTimeValue)
-            {
-                return new PropVariant
+                }
+                : value is string[] stringValues
+                ? FromStringVector(stringValues)
+                : value is int intValue
+                ? new PropVariant(intValue)
+                : value is uint uintValue
+                ? new PropVariant(uintValue)
+                : value is ulong ulongValue
+                ? new PropVariant(ulongValue)
+                : value is DateTime dateTimeValue
+                ? new PropVariant
                 {
                     _valueType = VtFileTime,
                     _fileTimeValue = dateTimeValue.ToUniversalTime().ToFileTimeUtc(),
-                };
-            }
-
-            if (value is ushort ushortValue)
-            {
-                return new PropVariant
+                }
+                : value is ushort ushortValue
+                ? new PropVariant
                 {
                     _valueType = VtUi2,
                     _ushortValue = ushortValue,
-                };
-            }
-
-            if (value is uint[] uintValues)
-            {
-                return FromUIntVector(uintValues);
-            }
-            if (value is double[] doubleValues)
-            {
-                return FromDoubleVector(doubleValues);
-            }
-
-            return new PropVariant { _valueType = VtEmpty };
+                }
+                : value is uint[] uintValues
+                ? FromUIntVector(uintValues)
+                : value is double[] doubleValues ? FromDoubleVector(doubleValues) : new PropVariant { _valueType = VtEmpty };
         }
 
         private PropVariant(int value)
@@ -772,15 +713,7 @@ namespace WinFormsLib
                 value = ToUIntVector();
             }
 
-            if (value is T typedValue)
-            {
-                return typedValue;
-            }
-            if (value != null && Nullable.GetUnderlyingType(typeof(T)) != null)
-            {
-                return (T)value;
-            }
-            return defaultValue;
+            return value is T typedValue ? typedValue : value != null && Nullable.GetUnderlyingType(typeof(T)) != null ? (T)value : defaultValue;
         }
 
         private static PropVariant FromStringVector(string[] values)

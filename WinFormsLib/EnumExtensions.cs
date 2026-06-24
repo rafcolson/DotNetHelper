@@ -34,7 +34,7 @@ namespace WinFormsLib
             if (i != 0)
             {
                 uint n = Convert.ToUInt32(super);
-                return ((n & i) == i);
+                return (n & i) == i;
             }
             return false;
         }

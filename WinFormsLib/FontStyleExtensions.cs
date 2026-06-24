@@ -29,7 +29,7 @@
             bool bold = new();
             bool underline = new();
             bool strikeout = new();
-            styles.Strip(Chars.SPACE);
+            _ = styles.Strip(Chars.SPACE);
             foreach (string style in styles.Split(Chars.COMMA))
             {
                 if (style.Equals("Bold"))

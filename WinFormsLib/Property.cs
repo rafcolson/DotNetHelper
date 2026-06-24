@@ -1,5 +1,5 @@
-﻿using System.Text.Json;
-using System.Text.Encodings.Web;
+﻿using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace WinFormsLib
@@ -11,7 +11,7 @@ namespace WinFormsLib
             public override Property Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 return reader.GetString() is string s && !string.IsNullOrEmpty(s)
-                    ? (Property)new(s)
+                    ? new(s)
                     : throw new ArgumentException($"'{nameof(reader)}' cannot be null or empty.", nameof(reader));
             }
             public override void Write(Utf8JsonWriter writer, Property property, JsonSerializerOptions options) => writer.WriteStringValue(property.ToString());

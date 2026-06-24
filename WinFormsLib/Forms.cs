@@ -1,8 +1,7 @@
 ﻿using System.ComponentModel;
-
-using static WinFormsLib.ToolStripMenuItems;
-using static WinFormsLib.Constants;
 using static WinFormsLib.Buttons;
+using static WinFormsLib.Constants;
+using static WinFormsLib.ToolStripMenuItems;
 using static WinFormsLib.Utils;
 
 namespace WinFormsLib
@@ -116,11 +115,11 @@ namespace WinFormsLib
                 MainTableLayoutPanel.Dock = DockStyle.Fill;
                 MainTableLayoutPanel.Padding = PADDING_MINIMUM;
                 MainTableLayoutPanel.ColumnCount = 1;
-                MainTableLayoutPanel.ColumnStyles.Add(new(SizeType.AutoSize));
+                _ = MainTableLayoutPanel.ColumnStyles.Add(new(SizeType.AutoSize));
                 MainTableLayoutPanel.RowCount = 3;
                 for (int i = 0; i < MainTableLayoutPanel.RowCount; i++)
                 {
-                    MainTableLayoutPanel.RowStyles.Add(new(SizeType.AutoSize));
+                    _ = MainTableLayoutPanel.RowStyles.Add(new(SizeType.AutoSize));
                 }
                 MainTableLayoutPanel.TabStop = false;
 
@@ -163,7 +162,7 @@ namespace WinFormsLib
                 CaptionLabel.Text = caption;
                 CaptionLabel.UpdateLinks(linkClickedAction: () => DialogResult = DialogResult.OK);
                 CaptionLabel.MinimumSize = CalculateSize(caption, font, padding: CaptionLabel.Padding);
-                DialogResultButtons.AddButtons(DialogFlowLayoutPanel, buttons);
+                _ = DialogResultButtons.AddButtons(DialogFlowLayoutPanel, buttons);
             }
         }
 
@@ -268,7 +267,7 @@ namespace WinFormsLib
                         }
                     }
                     ImageTableLayoutPanel.ResumeDrawing();
-                    OnSelectedIndexChanged?.Invoke();
+                    _ = (OnSelectedIndexChanged?.Invoke());
                 }
             }
 
@@ -310,15 +309,15 @@ namespace WinFormsLib
                     Margin = new(margin),
                     TabStop = false
                 };
-                int w = (preferredSize.Width - 24 - margin * 6) / cc;
-                int h = (preferredSize.Height - 192 - margin * 6) / rc;
+                int w = (preferredSize.Width - 24 - (margin * 6)) / cc;
+                int h = (preferredSize.Height - 192 - (margin * 6)) / rc;
                 for (int ic = 0; ic < cc; ic++)
                 {
-                    ImageTableLayoutPanel.ColumnStyles.Add(new(SizeType.Absolute, w));
+                    _ = ImageTableLayoutPanel.ColumnStyles.Add(new(SizeType.Absolute, w));
                 }
                 for (int ir = 0; ir < rc; ir++)
                 {
-                    ImageTableLayoutPanel.RowStyles.Add(new(SizeType.Absolute, h));
+                    _ = ImageTableLayoutPanel.RowStyles.Add(new(SizeType.Absolute, h));
                 }
                 for (int i = 0; i < numImages; i++)
                 {
@@ -406,7 +405,7 @@ namespace WinFormsLib
                             _input[k] = v;
                         }
                     }
-                    OnUpdate?.Invoke();
+                    _ = (OnUpdate?.Invoke());
                 }
                 base.OnClosed(e);
             }
@@ -415,7 +414,7 @@ namespace WinFormsLib
             {
                 if (sender is TextBox tb && e.Button == MouseButtons.Right)
                 {
-                    tb.Focus();
+                    _ = tb.Focus();
                 }
             }
 
@@ -446,11 +445,11 @@ namespace WinFormsLib
                 };
                 KeyValuePair<string, object?>[] kvpa = [.. _input];
                 ColumnStyle cs = kvpa.Length == 1 && string.IsNullOrEmpty(kvpa[0].Key) ? new(SizeType.Absolute, 1) : new(SizeType.AutoSize);
-                InputTableLayoutPanel.ColumnStyles.Add(cs);
-                InputTableLayoutPanel.ColumnStyles.Add(new(SizeType.Percent, 100F));
+                _ = InputTableLayoutPanel.ColumnStyles.Add(cs);
+                _ = InputTableLayoutPanel.ColumnStyles.Add(new(SizeType.Percent, 100F));
                 for (int i = 0; i < InputTableLayoutPanel.RowCount; i++)
                 {
-                    InputTableLayoutPanel.RowStyles.Add(new(SizeType.AutoSize));
+                    _ = InputTableLayoutPanel.RowStyles.Add(new(SizeType.AutoSize));
                 }
 
                 for (int i = 0; i < kvpa.Length; i++)
@@ -550,7 +549,7 @@ namespace WinFormsLib
                     }
                     else if (m[string.Empty] is string s && !string.IsNullOrEmpty(s) && !Items.Contains(s))
                     {
-                        Items.Add(s);
+                        _ = Items.Add(s);
                         SelectedItem = s;
                     }
                     else
@@ -716,11 +715,11 @@ namespace WinFormsLib
                 };
                 for (int i = 0; i < EditTableLayoutPanel.ColumnCount; i++)
                 {
-                    EditTableLayoutPanel.ColumnStyles.Add(new(SizeType.AutoSize));
+                    _ = EditTableLayoutPanel.ColumnStyles.Add(new(SizeType.AutoSize));
                 }
                 for (int i = 0; i < EditTableLayoutPanel.RowCount; i++)
                 {
-                    EditTableLayoutPanel.RowStyles.Add(new(SizeType.AutoSize));
+                    _ = EditTableLayoutPanel.RowStyles.Add(new(SizeType.AutoSize));
                 }
                 if (string.IsNullOrEmpty(caption))
                 {

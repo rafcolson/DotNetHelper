@@ -1,8 +1,8 @@
-﻿using System.Text.Json;
-using System.Collections;
-using System.Text.Encodings.Web;
-using System.Text.Json.Serialization;
+﻿using System.Collections;
 using System.Collections.Specialized;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace WinFormsLib
 {
@@ -96,14 +96,14 @@ namespace WinFormsLib
         public OrderedMap<TKey, TValue> Intersect(IEnumerable<TKey> keys)
         {
             OrderedMap<TKey, TValue> m = new(this);
-            m.IntersectWith(keys);
+            _ = m.IntersectWith(keys);
             return m;
         }
 
         public OrderedMap<TKey, TValue> Except(IEnumerable<TKey> keys)
         {
             OrderedMap<TKey, TValue> om = new(this);
-            om.ExceptWith(keys);
+            _ = om.ExceptWith(keys);
             return om;
         }
 

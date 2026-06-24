@@ -34,7 +34,7 @@ namespace WinFormsLib
             {
                 hsvColors.Add(c.ToHSVColor());
             }
-            hsvColors.Sort((hsv1, hsv2) => (hsv1.Hue).CompareTo(hsv2.Hue));
+            hsvColors.Sort((hsv1, hsv2) => hsv1.Hue.CompareTo(hsv2.Hue));
             colors.Clear();
             foreach (HSVColor hsv in hsvColors)
             {
@@ -55,21 +55,21 @@ namespace WinFormsLib
             HashSet<Color> colors = [];
             foreach (KnownColor knowColor in knownColors)
             {
-                colors.Add(Color.FromKnownColor(knowColor));
+                _ = colors.Add(Color.FromKnownColor(knowColor));
             }
-            colors.Remove(Color.Black);
-            colors.Remove(Color.White);
-            colors.Remove(Color.Transparent);
+            _ = colors.Remove(Color.Black);
+            _ = colors.Remove(Color.White);
+            _ = colors.Remove(Color.Transparent);
             List<HSVColor> hsvColors = [];
             foreach (Color c in colors)
             {
                 hsvColors.Add(c.ToHSVColor());
             }
-            hsvColors.Sort((hsv1, hsv2) => (hsv1.Hue).CompareTo(hsv2.Hue));
+            hsvColors.Sort((hsv1, hsv2) => hsv1.Hue.CompareTo(hsv2.Hue));
             colors.Clear();
             foreach (HSVColor hsv in hsvColors)
             {
-                colors.Add(hsv.ToColor());
+                _ = colors.Add(hsv.ToColor());
             }
             return [.. colors];
         }
@@ -94,7 +94,7 @@ namespace WinFormsLib
             {
                 hsvColors.Add(c.ToHSVColor());
             }
-            hsvColors.Sort((hsv1, hsv2) => (hsv1.Hue).CompareTo(hsv2.Hue));
+            hsvColors.Sort((hsv1, hsv2) => hsv1.Hue.CompareTo(hsv2.Hue));
             colors.Clear();
             foreach (HSVColor hsv in hsvColors)
             {
@@ -125,7 +125,7 @@ namespace WinFormsLib
             {
                 hsvColors.Add(c.ToHSVColor());
             }
-            hsvColors.Sort((hsv1, hsv2) => (hsv1.Hue).CompareTo(hsv2.Hue));
+            hsvColors.Sort((hsv1, hsv2) => hsv1.Hue.CompareTo(hsv2.Hue));
             colors.Clear();
             foreach (HSVColor hsv in hsvColors)
             {
@@ -169,7 +169,7 @@ namespace WinFormsLib
             byte red = super.R;
             byte green = super.G;
             byte blue = super.B;
-            double black = Math.Min(1d - red / 255d, Math.Min(1d - green / 255d, 1d - blue / 255d));
+            double black = Math.Min(1d - (red / 255d), Math.Min(1d - (green / 255d), 1d - (blue / 255d)));
             double cyan = (1d - (red / 255d) - black) / (1d - black);
             double magenta = (1d - (green / 255d) - black) / (1d - black);
             double yellow = (1d - (blue / 255d) - black) / (1d - black);
@@ -196,9 +196,9 @@ namespace WinFormsLib
         {
             d = Math.Min(Math.Max(d, 0), 1);
             double d0 = 1 - d;
-            byte r = (byte)Math.Round(Math.Min((int)Math.Round(super.R * d0 + color.R * d), 255d));
-            byte g = (byte)Math.Round(Math.Min((int)Math.Round(super.G * d0 + color.G * d), 255d));
-            byte b = (byte)Math.Round(Math.Min((int)Math.Round(super.B * d0 + color.B * d), 255d));
+            byte r = (byte)Math.Round(Math.Min((int)Math.Round((super.R * d0) + (color.R * d)), 255d));
+            byte g = (byte)Math.Round(Math.Min((int)Math.Round((super.G * d0) + (color.G * d)), 255d));
+            byte b = (byte)Math.Round(Math.Min((int)Math.Round((super.B * d0) + (color.B * d)), 255d));
             return Color.FromArgb(r, g, b);
         }
 
