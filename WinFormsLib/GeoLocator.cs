@@ -38,6 +38,12 @@ namespace WinFormsLib
 
             public GeoArea() { }
 
+            public GeoArea(GeoCoordinates? geoCoords = null, string? areaInfo = EMPTY_STRING)
+            {
+                GeoCoords = geoCoords;
+                AreaInfo = areaInfo;
+            }
+
             public GeoArea(string json)
             {
                 if (string.IsNullOrEmpty(json))
@@ -262,12 +268,15 @@ namespace WinFormsLib
                 }
             }
 
-            public GeoCoordinates(double latitude, double longitude, double[]? boundingbox = null)
+            public GeoCoordinates(double? latitude, double? longitude, double[]? boundingbox = null)
             {
-                IsValid = true;
-                Latitude = latitude;
-                Longitude = longitude;
-                Boundingbox = boundingbox is double[] bb ? (double[])bb.Clone() : GetBoundingbox(Latitude, Longitude, 10);
+                if (latitude != null && longitude != null)
+                {
+                    IsValid = true;
+                    Latitude = (double)latitude;
+                    Longitude = (double)longitude;
+                    Boundingbox = boundingbox is double[] bb ? (double[])bb.Clone() : GetBoundingbox(Latitude, Longitude, 10);
+                }
             }
 
             public GeoCoordinates(

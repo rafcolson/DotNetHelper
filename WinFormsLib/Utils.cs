@@ -4,6 +4,7 @@ using System.IO.Compression;
 using System.Management;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using static WinFormsLib.Chars;
 using static WinFormsLib.Constants;
@@ -145,7 +146,7 @@ namespace WinFormsLib
             {
                 string deviceId = root.TrimEnd(Path.DirectorySeparatorChar);
                 using ManagementObjectSearcher searcher = new(string.Format(LOGICAL_DISK_QUERY, deviceId));
-                foreach (ManagementObject volume in searcher.Get())
+                foreach (ManagementObject volume in searcher.Get().Cast<ManagementObject>())
                 {
                     using (volume)
                     {
@@ -157,7 +158,7 @@ namespace WinFormsLib
                     }
 
                     using ManagementObjectSearcher partitionSearcher = new(string.Format(LOGICAL_DISK_TO_PARTITION_QUERY, deviceId));
-                    foreach (ManagementObject partition in partitionSearcher.Get())
+                    foreach (ManagementObject partition in partitionSearcher.Get().Cast<ManagementObject>())
                     {
                         partition.Dispose();
                         return true;
@@ -167,6 +168,58 @@ namespace WinFormsLib
             }
             catch { }
             return true;
+        }
+
+        public static T GetToggledFlags<T>(T flags, T flag, bool enabled) where T : struct, Enum
+        {
+            long flagsValue = Convert.ToInt64(flags);
+            long flagValue = Convert.ToInt64(flag);
+            long value = enabled ? flagsValue | flagValue : flagsValue & ~flagValue;
+            return (T)Enum.ToObject(typeof(T), value);
+        }
+
+        public static string GetString(JsonElement root, string propertyName)
+            => root.TryGetProperty(propertyName, out JsonElement element) && element.ValueKind == JsonValueKind.String
+                ? element.GetString() ?? EMPTY_STRING
+                : EMPTY_STRING;
+
+        public static double? GetDouble(JsonElement root, string propertyName)
+        {
+            if (!root.TryGetProperty(propertyName, out JsonElement element))
+            {
+                return null;
+            }
+            return element.ValueKind switch
+            {
+                JsonValueKind.Number when element.TryGetDouble(out double value) => value,
+                JsonValueKind.String when double.TryParse(element.GetString(), System.Globalization.NumberStyles.Float, CULTURE_INFO_DEFAULT, out double value) => value,
+                _ => null
+            };
+        }
+
+        public static DateTime? GetDateTime(JsonElement root, string datePropertyName, string? timePropertyName = null)
+        {
+            string value = GetString(root, datePropertyName);
+            if (string.IsNullOrEmpty(value))
+            {
+                return null;
+            }
+            if (timePropertyName is string timeProperty && GetString(root, timeProperty) is string time && !string.IsNullOrEmpty(time))
+            {
+                value = $"{value} {time}";
+            }
+            string[] formats =
+            [
+                "yyyy:MM:dd HH:mm:ss",
+                "yyyy:MM:dd HH:mm:ssK",
+                "yyyy:MM:dd",
+                "yyyy-MM-dd HH:mm:ss",
+                "yyyy-MM-ddTHH:mm:ss",
+                "yyyy-MM-dd"
+            ];
+            return DateTime.TryParseExact(value, formats, CULTURE_INFO_DEFAULT, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out DateTime exact)
+                ? exact
+                : value.AsDateTime();
         }
 
         public static string? GetTargetFile(string path)
