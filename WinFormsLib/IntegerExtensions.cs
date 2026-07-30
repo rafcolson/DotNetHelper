@@ -2,10 +2,15 @@
 {
     public static partial class IntegerExtensions
     {
-        public static string ToDigits(this int super, int minLength = 1)
+        public static string ToDigits(this int value, int minLength = 1)
         {
-            string s = super.ToString();
-            return $"{Chars.ZERO * Math.Max(0, minLength - s.Length)}{s}";
+            bool negative = value < 0;
+            string digits = Math.Abs((long)value).ToString();
+
+            int digitLength = negative ? minLength - 1 : minLength;
+            digits = digits.PadLeft(Math.Max(digits.Length, digitLength), Chars.ZERO);
+
+            return negative ? Chars.HYPHEN + digits : digits;
         }
     }
 }

@@ -5,7 +5,7 @@
     <FileVersion>$(Version)</FileVersion>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <InformationalVersion>$(Version)</InformationalVersion>
-    <TargetFrameworks>net9.0-windows10.0.26100.0;net10.0-windows10.0.26100.0</TargetFrameworks>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -29,10 +29,22 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="AdvTabControl.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="AdvTabPage.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="FlatComboBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Update="Globals.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Globals.resx</DependentUpon>
+    </Compile>
+    <Compile Update="PanelMenu.cs">
+      <SubType>Component</SubType>
     </Compile>
     <Compile Update="Properties\Resources.Designer.cs">
       <DesignTime>True</DesignTime>

@@ -390,6 +390,7 @@ namespace WinFormsLib
 
             protected readonly Map<string, object?> _input;
 
+            [Obsolete]
             protected override void OnClosed(EventArgs e)
             {
                 if (AcceptButton != null && DialogResult == AcceptButton.DialogResult)
@@ -521,6 +522,7 @@ namespace WinFormsLib
                 base.OnShown(e);
             }
 
+            [Obsolete]
             protected override void OnClosed(EventArgs e)
             {
                 if (AcceptButton != null && DialogResult == AcceptButton.DialogResult)

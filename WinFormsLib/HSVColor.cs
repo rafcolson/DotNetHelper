@@ -2,83 +2,44 @@
 {
     public class HSVColor(double hue, double saturation, double value)
     {
-        private double _hue = hue;
-        private double _saturation = saturation;
-        private double _value = value;
-
-        public double Hue { get => _hue; set => _hue = Math.Min(Math.Max(value, 0d), 360d); }
-        public double Saturation { get => _saturation; set => _saturation = Math.Min(Math.Max(value, 0d), 1d); }
-        public double Value { get => _value; set => _value = Math.Min(Math.Max(value, 0d), 1d); }
+        public double Hue { get; set; } = ((hue % 360d) + 360d) % 360d;
+        public double Saturation { get; set; } = Math.Clamp(saturation, 0d, 1d);
+        public double Value { get; set; } = Math.Clamp(value, 0d, 1d);
 
         public Color ToColor()
         {
-            double s = _saturation;
-            double v = _value;
-            if (s.Equals(0d))
+            double hue = ((Hue % 360d) + 360d) % 360d;
+            double saturation = Math.Clamp(Saturation, 0d, 1d);
+            double value = Math.Clamp(Value, 0d, 1d);
+
+            if (saturation == 0d)
             {
-                int j = (int)Math.Round(v * 255d);
-                return Color.FromArgb(j, j, j);
+                int gray = (int)Math.Round(value * 255d);
+                return Color.FromArgb(gray, gray, gray);
             }
-            double h = _hue / 60d;
-            int i = (int)Math.Round(Math.Floor(h));
-            double f = h - i;
-            double p = v * (1d - s);
-            double q = v * (1d - (s * f));
-            double t = v * (1d - (s * (1d - f)));
-            double r;
-            double g;
-            double b;
-            switch (i)
+
+            double sectorPosition = hue / 60d;
+            int sector = (int)Math.Floor(sectorPosition);
+            double fraction = sectorPosition - sector;
+
+            double p = value * (1d - saturation);
+            double q = value * (1d - (saturation * fraction));
+            double t = value * (1d - (saturation * (1d - fraction)));
+
+            (double red, double green, double blue) = sector switch
             {
-                case 0:
-                    {
-                        r = v * 255d;
-                        g = t * 255d;
-                        b = p * 255d;
-                        break;
-                    }
+                0 => (value, t, p),
+                1 => (q, value, p),
+                2 => (p, value, t),
+                3 => (p, q, value),
+                4 => (t, p, value),
+                _ => (value, p, q)
+            };
 
-                case 1:
-                    {
-                        r = q * 255d;
-                        g = v * 255d;
-                        b = p * 255d;
-                        break;
-                    }
-
-                case 2:
-                    {
-                        r = p * 255d;
-                        g = v * 255d;
-                        b = t * 255d;
-                        break;
-                    }
-
-                case 3:
-                    {
-                        r = p * 255d;
-                        g = q * 255d;
-                        b = v * 255d;
-                        break;
-                    }
-
-                case 4:
-                    {
-                        r = t * 255d;
-                        g = p * 255d;
-                        b = v * 255d;
-                        break;
-                    }
-
-                default:
-                    {
-                        r = v * 255d;
-                        g = p * 255d;
-                        b = q * 255d;
-                        break;
-                    }
-            }
-            return Color.FromArgb((int)Math.Round(r), (int)Math.Round(g), (int)Math.Round(b));
+            return Color.FromArgb(
+                (int)Math.Round(red * 255d),
+                (int)Math.Round(green * 255d),
+                (int)Math.Round(blue * 255d));
         }
     }
 }

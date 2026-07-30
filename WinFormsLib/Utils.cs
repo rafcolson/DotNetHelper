@@ -21,6 +21,123 @@ namespace WinFormsLib
         };
         private static readonly Label _label = new();
 
+        public enum WordSearchOptions
+        {
+            AllWords,
+            AnyWord,
+            ExactPhrase
+        }
+
+        public static readonly HashSet<char> CommonPunctuationMarks = [Chars.SPACE, Chars.PERIOD, Chars.COMMA, Chars.QUESTION_MARK, Chars.EXCLAMATION_MARK, Chars.COLON, Chars.SEMICOLON, Chars.HYPHEN, Chars.SINGLE_QUOTE, Chars.DOUBLE_QUOTE, Chars.LEFT_CURLY_SINGLE_QUOTE, Chars.RIGHT_CURLY_SINGLE_QUOTE, Chars.LEFT_CURLY_SINGLE_QUOTE_LOW, Chars.LEFT_CURLY_DOUBLE_QUOTE, Chars.RIGHT_CURLY_DOUBLE_QUOTE, Chars.LEFT_CURLY_DOUBLE_QUOTE_LOW, Chars.LEFT_ANGLE_SINGLE_QUOTE, Chars.RIGHT_ANGLE_SINGLE_QUOTE, Chars.LEFT_ANGLE_DOUBLE_QUOTE, Chars.RIGHT_ANGLE_DOUBLE_QUOTE, Chars.LEFT_SQUARE_BRACKET, Chars.RIGHT_SQUARE_BRACKET, Chars.LEFT_ROUND_BRACKET, Chars.RIGHT_ROUND_BRACKET, Chars.LEFT_CURLY_BRACE, Chars.RIGHT_CURLY_BRACE];
+
+        public static int[][] GetOccurrences(string phrase, string text, [Optional, DefaultParameterValue(false)] ref bool matchCase, [Optional, DefaultParameterValue(false)] ref bool partialMatch, [Optional, DefaultParameterValue(WordSearchOptions.AllWords)] ref WordSearchOptions options)
+        {
+            List<int[]> occurrences = [];
+
+            if (string.IsNullOrEmpty(text))
+            {
+                return occurrences.ToArray();
+            }
+
+            if (!matchCase)
+            {
+                phrase = phrase.ToLower();
+                text = text.ToLower();
+            }
+
+            string[] words;
+
+            if (options.Equals(WordSearchOptions.ExactPhrase))
+            {
+                words = new string[] { phrase };
+            }
+            else
+            {
+                List<string> l = [];
+                foreach (string s in phrase.Split())
+                {
+                    _ = s.Trim();
+                    l.Add(s);
+                }
+                words = l.ToArray();
+            }
+
+            int n = text.Length;
+
+            List<int[]> occurrence = [];
+
+            foreach (string word in words)
+            {
+                int m = word.Length;
+                char lastChar = Chars.SPACE;
+                int o = -1;
+                int i = 0;
+                int j = 0;
+
+                while (i != n)
+                {
+                    char c = text[i];
+
+                    if (j == m)
+                    {
+                        if (partialMatch || CommonPunctuationMarks.Contains(c))
+                        {
+                            occurrence.Add(new int[] { o, i - o });
+                        }
+
+                        o = -1;
+                        j = 0;
+                    }
+
+                    else if (c.Equals(word[j]))
+                    {
+                        if (o != -1)
+                        {
+                            j += 1;
+                        }
+                        else if (partialMatch || CommonPunctuationMarks.Contains(lastChar))
+                        {
+                            o = i;
+                            j += 1;
+                        }
+                        else
+                        {
+                            j = 0;
+                        }
+                    }
+
+                    else
+                    {
+                        o = -1;
+                        j = 0;
+                    }
+
+                    lastChar = c;
+                    i += 1;
+                }
+
+                if (j == m)
+                {
+                    occurrence.Add(new int[] { o, n - o });
+                }
+
+                if (options.Equals(WordSearchOptions.AllWords) && !occurrence.Any())
+                {
+                    occurrences.Clear();
+                    break;
+                }
+
+                foreach (int[] ia in occurrence)
+                {
+                    occurrences.Add(ia);
+                }
+
+                occurrence.Clear();
+            }
+
+            return occurrences.ToArray();
+        }
+
         public static void ShutDown()
         {
             ProcessStartInfo psi = new("shutdown", "/s /t 1")
@@ -185,16 +302,14 @@ namespace WinFormsLib
 
         public static double? GetDouble(JsonElement root, string propertyName)
         {
-            if (!root.TryGetProperty(propertyName, out JsonElement element))
-            {
-                return null;
-            }
-            return element.ValueKind switch
-            {
-                JsonValueKind.Number when element.TryGetDouble(out double value) => value,
-                JsonValueKind.String when double.TryParse(element.GetString(), System.Globalization.NumberStyles.Float, CULTURE_INFO_DEFAULT, out double value) => value,
-                _ => null
-            };
+            return !root.TryGetProperty(propertyName, out JsonElement element)
+                ? null
+                : element.ValueKind switch
+                {
+                    JsonValueKind.Number when element.TryGetDouble(out double value) => value,
+                    JsonValueKind.String when double.TryParse(element.GetString(), System.Globalization.NumberStyles.Float, CULTURE_INFO_DEFAULT, out double value) => value,
+                    _ => null
+                };
         }
 
         public static DateTime? GetDateTime(JsonElement root, string datePropertyName, string? timePropertyName = null)

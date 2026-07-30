@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using Microsoft.VisualBasic.CompilerServices;
+using System.Globalization;
 using System.Text.Json;
 using static WinFormsLib.Chars;
 using static WinFormsLib.Constants;
@@ -71,6 +72,32 @@ namespace WinFormsLib
         }
 
         public static string[]? SplitLast(this string super, char delimiter) => super.SplitLast(delimiter.ToString());
+
+        public static string TrimmedFirst(this string super, string delimiter)
+        {
+            if (super.Length != 0)
+            {
+                if (delimiter.Contains(super.First()))
+                {
+                    return super[1..];
+                }
+            }
+            return super;
+        }
+
+        public static string TrimmedLast(this string super, string delimiter)
+        {
+            if (super.Length != 0)
+            {
+                if (delimiter.Contains(super.Last()))
+                {
+                    return super[..^1];
+                }
+            }
+            return super;
+        }
+
+        public static string Trimmed(this string super, string delimiter) => super.TrimmedFirst(delimiter).TrimmedLast(delimiter);
 
         public static string ToPascalCase(this string super)
         {
@@ -234,6 +261,46 @@ namespace WinFormsLib
         public static Dictionary<string, object?>? AsDictionary(this string super) => JsonSerializer.Deserialize<Dictionary<string, object?>>(super);
 
         public static Dictionary<string, string>? AsStringDictionary(this string super) => JsonSerializer.Deserialize<Dictionary<string, string>>(super);
+
+        public static Map<string, object> AsMap(this string super)
+        {
+            if (super.Trimmed(Conversions.ToString(LEFT_CURLY_BRACE) + RIGHT_CURLY_BRACE).AsStringArray() is not string[] sa)
+            {
+                return [];
+            }
+            Map<string, object> d = [];
+            foreach (string s in sa)
+            {
+                try
+                {
+                    if (s.SplitFirst(Conversions.ToString(COLON)) is string[] it)
+                    {
+                        if (it.Last().TrimStart(SPACE).AsObject() is object o)
+                        {
+                            d.Add(it.First().AsString(), o);
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                }
+            }
+            return d;
+        }
+
+        public static Map<string, Map<string, object>> AsNestedMap(this string super)
+        {
+            if (super.AsStringDictionary() is not Dictionary<string, string> sd)
+            {
+                return [];
+            }
+            Map<string, Map<string, object>> d = [];
+            foreach (KeyValuePair<string, string> kvp in sd)
+            {
+                d.Add(kvp.Key, kvp.Value.AsMap());
+            }
+            return d;
+        }
 
         public static T? AsEnumFromGlobal<T>(this string super) where T : Enum
         {

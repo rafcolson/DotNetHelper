@@ -18,9 +18,7 @@ namespace WinFormsLib
             NotifyFilter = NotifyFilters.DirectoryName | NotifyFilters.FileName | NotifyFilters.LastWrite
         };
         private readonly PollingFileSystemWatcher _pollingWatcher = new();
-        private string _path = string.Empty;
         private bool _requiresPolling;
-        private bool _enableRaisingEvents;
         private bool _disposed;
 
         public event EventHandler<AdaptiveFileSystemWatcherEventArgs>? Changed;
@@ -39,22 +37,22 @@ namespace WinFormsLib
 
         public string Path
         {
-            get => _path;
+            get;
             set
             {
                 ObjectDisposedException.ThrowIf(_disposed, this);
-                if (string.Equals(_path, value, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(field, value, StringComparison.OrdinalIgnoreCase))
                 {
                     return;
                 }
-                _path = value;
+                field = value;
                 _requiresPolling = !string.IsNullOrEmpty(value) && !Utils.SupportsFileSystemWatcher(value);
-                if (_enableRaisingEvents)
+                if (EnableRaisingEvents)
                 {
                     Restart();
                 }
             }
-        }
+        } = string.Empty;
 
         public int PollingInterval
         {
@@ -74,15 +72,15 @@ namespace WinFormsLib
 
         public bool EnableRaisingEvents
         {
-            get => _enableRaisingEvents;
+            get;
             set
             {
                 ObjectDisposedException.ThrowIf(_disposed, this);
-                if (_enableRaisingEvents == value)
+                if (field == value)
                 {
                     return;
                 }
-                _enableRaisingEvents = value;
+                field = value;
                 if (value)
                 {
                     Start();
@@ -104,7 +102,7 @@ namespace WinFormsLib
 
         private void Start()
         {
-            if (string.IsNullOrEmpty(_path))
+            if (string.IsNullOrEmpty(Path))
             {
                 return;
             }
@@ -116,11 +114,11 @@ namespace WinFormsLib
 
             try
             {
-                _folderContentsWatcher.Path = _path;
+                _folderContentsWatcher.Path = Path;
                 _folderContentsWatcher.EnableRaisingEvents = true;
 
-                string filter = Utils.GetDirectoryName(_path);
-                string parentPath = Utils.GetParentPath(_path);
+                string filter = Utils.GetDirectoryName(Path);
+                string parentPath = Utils.GetParentPath(Path);
                 if (!string.IsNullOrEmpty(filter) && !string.IsNullOrEmpty(parentPath))
                 {
                     _folderWatcher.Filter = filter;
@@ -138,7 +136,7 @@ namespace WinFormsLib
 
         private void StartPolling()
         {
-            _pollingWatcher.Path = _path;
+            _pollingWatcher.Path = Path;
             _pollingWatcher.EnableRaisingEvents = true;
         }
 
@@ -151,11 +149,11 @@ namespace WinFormsLib
 
         private void FileSystemWatcher_Changed(object? sender, FileSystemEventArgs e)
         {
-            string path = ReferenceEquals(sender, _folderWatcher) ? e.FullPath : _path;
+            string path = ReferenceEquals(sender, _folderWatcher) ? e.FullPath : Path;
             Changed?.Invoke(this, new AdaptiveFileSystemWatcherEventArgs(path));
         }
 
-        private void PollingWatcher_Changed(object? sender, EventArgs e) => Changed?.Invoke(this, new AdaptiveFileSystemWatcherEventArgs(_path));
+        private void PollingWatcher_Changed(object? sender, EventArgs e) => Changed?.Invoke(this, new AdaptiveFileSystemWatcherEventArgs(Path));
 
         public void Dispose()
         {

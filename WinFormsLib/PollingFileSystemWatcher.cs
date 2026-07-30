@@ -6,7 +6,6 @@ namespace WinFormsLib
 
         private readonly System.Windows.Forms.Timer _timer = new();
         private FileSystemEntryState[] _snapshot = [];
-        private string _path = string.Empty;
         private bool _directoryExists;
         private bool _initialized;
         private bool _disposed;
@@ -20,21 +19,21 @@ namespace WinFormsLib
 
         public string Path
         {
-            get => _path;
+            get;
             set
             {
                 ObjectDisposedException.ThrowIf(_disposed, this);
-                if (string.Equals(_path, value, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(field, value, StringComparison.OrdinalIgnoreCase))
                 {
                     return;
                 }
-                _path = value;
+                field = value;
                 if (EnableRaisingEvents)
                 {
                     InitializeSnapshot();
                 }
             }
-        }
+        } = string.Empty;
 
         public int Interval
         {
@@ -62,12 +61,12 @@ namespace WinFormsLib
 
         private void InitializeSnapshot()
         {
-            _initialized = TryGetSnapshot(_path, out _directoryExists, out _snapshot);
+            _initialized = TryGetSnapshot(Path, out _directoryExists, out _snapshot);
         }
 
         private void Timer_Tick(object? sender, EventArgs e)
         {
-            if (!TryGetSnapshot(_path, out bool directoryExists, out FileSystemEntryState[] snapshot))
+            if (!TryGetSnapshot(Path, out bool directoryExists, out FileSystemEntryState[] snapshot))
             {
                 return;
             }
