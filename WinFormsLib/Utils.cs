@@ -789,7 +789,6 @@ namespace WinFormsLib
             TextFormatFlags format = TextFormatFlags.WordBreak
         )
         {
-            int marginOfError = 2;
             font ??= FONT_DEFAULT;
             padding ??= new();
             Padding p = PADDING_DEFAULT + padding.Value;
@@ -797,9 +796,11 @@ namespace WinFormsLib
             Size size = TextRenderer.MeasureText(text, font, proposedSize, format);
             double sqr = Math.Sqrt((size.Height + p.Vertical) * (size.Width + p.Horizontal));
             double r = (double)proposedSize.Width / proposedSize.Height;
-            int h = (int)Math.Ceiling((sqr / r) + Math.Sqrt(p.Vertical));
-            int w = (int)Math.Ceiling((sqr * r) + Math.Sqrt(p.Horizontal));
-            return new(w, h + marginOfError);
+            double ratioScale = Math.Sqrt(r);
+            int w = (int)Math.Ceiling((sqr * ratioScale) + Math.Sqrt(p.Horizontal));
+            int textWidth = Math.Max(1, w - p.Horizontal);
+            int h = TextRenderer.MeasureText(text, font, new(textWidth, int.MaxValue), format).Height + p.Vertical;
+            return new(w, h);
         }
 
         public static int GetMaxWidth(object[] objects, Font font, int marginHorizontal = 0, int minWidth = 0)

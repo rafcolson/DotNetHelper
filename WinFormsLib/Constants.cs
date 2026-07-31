@@ -7,6 +7,7 @@ namespace WinFormsLib
         public const int TOOLTIP_AUTO_POP_DELAY = 10000;
         public const int TOOLTIP_INITIAL_DELAY = 250;
         public const int TOOLTIP_RESHOW_DELAY = 500;
+        public const int PANEL_MENU_MOUSE_LEAVE_DELAY = 1000;
         public const string EMPTY_STRING = "";
         public const string NEW_LINE = "\n";
         public const string ESCAPE_KEY = "{ESC}";

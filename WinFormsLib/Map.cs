@@ -53,6 +53,8 @@ namespace WinFormsLib
 
         public Map(IDictionary<TKey, TValue> id) => Union(id);
 
+        public int GetIndexOf(TKey k) => Array.IndexOf([.. Keys], k);
+
         public void Union(IDictionary<TKey, TValue> id)
         {
             if (id != null)

@@ -35,27 +35,25 @@ namespace WinFormsLib
 
         public static string NextNumerable(this string[] super, string s)
         {
-            while (super.Contains(s))
+            int suffixStart = s.Length;
+            while (suffixStart > 0 && char.IsDigit(s[suffixStart - 1]))
             {
-                string d = s[^1..].ToDigits();
-                if (d.Length != 0)
-                {
-                    int i = int.Parse(d);
-                    int j = 0;
-                    while (!j.Equals(i))
-                    {
-                        j += 1;
-                    }
-
-                    j += 1;
-                    s = s[0..^1] + j.ToString();
-                }
-                else
-                {
-                    s += ZERO;
-                }
+                suffixStart--;
             }
-            return s;
+
+            string stem = s[..suffixStart];
+            if (suffixStart == s.Length && !super.Contains(s))
+            {
+                return s;
+            }
+
+            int suffix = suffixStart == s.Length ? 0 : int.Parse(s[suffixStart..]) + 1;
+            string candidate = stem + suffix;
+            while (super.Contains(candidate))
+            {
+                candidate = stem + ++suffix;
+            }
+            return candidate;
         }
 
         public static string ToJson(this object[] super, bool includeBrackets)

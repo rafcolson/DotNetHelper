@@ -1,3 +1,5 @@
+using static WinFormsLib.Constants;
+
 namespace WinFormsLib
 {
     public class PanelMenu : Button
@@ -63,6 +65,13 @@ namespace WinFormsLib
             {
                 _buttonSize = value;
             }
+        }
+
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
+        public int MouseLeaveDelay
+        {
+            get => AllMouseLeaveTimer.Interval;
+            set => AllMouseLeaveTimer.Interval = Math.Max(value, 1);
         }
 
         internal Size ScaledButtonSize
@@ -367,6 +376,7 @@ namespace WinFormsLib
             _buttonActiveBackColor = BackColor;
             ButtonFont = Font;
             AllMouseLeaveTimer = new System.Windows.Forms.Timer();
+            MouseLeaveDelay = PANEL_MENU_MOUSE_LEAVE_DELAY;
             MouseEnter += On_MouseEnter;
             MouseLeave += On_MouseLeave;
             ForeColorChanged += On_ForeColorChanged;
@@ -424,6 +434,7 @@ namespace WinFormsLib
 
         private void AllMouseEnter(EventArgs e)
         {
+            AllMouseLeaveTimer.Stop();
             if (!menuMouseHover)
             {
                 menuMouseHover = true;
@@ -432,12 +443,14 @@ namespace WinFormsLib
                     MenuMouseEnter?.Invoke(this, e);
                 }
             }
+            menuEventArgs = null;
         }
 
         private void AllMouseLeave(EventArgs e)
         {
             menuMouseHover = false;
             menuEventArgs = e;
+            AllMouseLeaveTimer.Stop();
             AllMouseLeaveTimer.Start();
         }
 

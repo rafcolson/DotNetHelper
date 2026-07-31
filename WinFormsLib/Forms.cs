@@ -161,7 +161,9 @@ namespace WinFormsLib
 
                 CaptionLabel.Text = caption;
                 CaptionLabel.UpdateLinks(linkClickedAction: () => DialogResult = DialogResult.OK);
-                CaptionLabel.MinimumSize = CalculateSize(caption, font, padding: CaptionLabel.Padding);
+                int captionWidth = CalculateSize(caption, font).Width;
+                int captionHeight = CaptionLabel.GetPreferredSize(new(captionWidth, 0)).Height;
+                CaptionLabel.MinimumSize = new(captionWidth, captionHeight + CaptionLabel.Font.Height);
                 _ = DialogResultButtons.AddButtons(DialogFlowLayoutPanel, buttons);
             }
         }
