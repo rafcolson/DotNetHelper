@@ -226,6 +226,6 @@
         public const char Y_UMLAUT_LOWER = 'ÿ'; // ÿ
         public const char HIDDEN_SEPARATOR = '\ufdd0'; // [internal separator]
 
-        public static readonly string INVALID = new string([BACKSLASH, SLASH, COLON, ASTERISK, QUESTION_MARK]) + System.IO.Path.GetInvalidPathChars();
+        public static readonly string INVALID = new(System.IO.Path.GetInvalidFileNameChars());
     }
 }

@@ -13,19 +13,80 @@ namespace WinFormsLib
 {
     public static partial class Utils
     {
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19;
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+        private const int WM_CANCELMODE = 0x001F;
+        private const int WM_THEMECHANGED = 0x031A;
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int valueSize);
+
+        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hwnd, string? subAppName, string? subIdList);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam);
+
         private static readonly ToolTip _toolTip = new()
         {
             AutoPopDelay = TOOLTIP_AUTO_POP_DELAY,
             InitialDelay = TOOLTIP_INITIAL_DELAY,
             ReshowDelay = TOOLTIP_RESHOW_DELAY
         };
+        private static readonly ToolTip _toolStripToolTip = new()
+        {
+            AutoPopDelay = TOOLTIP_AUTO_POP_DELAY,
+            InitialDelay = TOOLTIP_INITIAL_DELAY,
+            ReshowDelay = TOOLTIP_RESHOW_DELAY
+        };
         private static readonly Label _label = new();
+        private static bool _toolTipOwnerDrawConfigured;
+        private static readonly Dictionary<ToolStripItem, string> _toolStripToolTips = [];
+        private static readonly System.Windows.Forms.Timer _toolStripToolTipTimer = new()
+        {
+            Interval = TOOLTIP_INITIAL_DELAY
+        };
+        private static ToolStripItem? _pendingToolStripToolTip;
+        private static bool _toolStripToolTipTimerConfigured;
 
         public enum WordSearchOptions
         {
             AllWords,
             AnyWord,
             ExactPhrase
+        }
+
+        public static void SetScrollBarTheme(Control control, bool dark)
+        {
+            if (!control.IsHandleCreated)
+            {
+                return;
+            }
+
+            _ = SetWindowTheme(control.Handle, dark ? "DarkMode_Explorer" : null, null);
+            _ = SendMessage(control.Handle, WM_THEMECHANGED, IntPtr.Zero, IntPtr.Zero);
+        }
+
+        public static void CancelMode(Control control)
+        {
+            if (control.IsHandleCreated)
+            {
+                _ = SendMessage(control.Handle, WM_CANCELMODE, IntPtr.Zero, IntPtr.Zero);
+            }
+        }
+
+        public static void SetTitleBarTheme(Form form, bool dark)
+        {
+            if (!form.IsHandleCreated || !OperatingSystem.IsWindowsVersionAtLeast(10, 0, 17763))
+            {
+                return;
+            }
+
+            int value = dark ? 1 : 0;
+            int attribute = OperatingSystem.IsWindowsVersionAtLeast(10, 0, 18985)
+                ? DWMWA_USE_IMMERSIVE_DARK_MODE
+                : DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
+            _ = DwmSetWindowAttribute(form.Handle, attribute, ref value, sizeof(int));
         }
 
         public static readonly HashSet<char> CommonPunctuationMarks = [Chars.SPACE, Chars.PERIOD, Chars.COMMA, Chars.QUESTION_MARK, Chars.EXCLAMATION_MARK, Chars.COLON, Chars.SEMICOLON, Chars.HYPHEN, Chars.SINGLE_QUOTE, Chars.DOUBLE_QUOTE, Chars.LEFT_CURLY_SINGLE_QUOTE, Chars.RIGHT_CURLY_SINGLE_QUOTE, Chars.LEFT_CURLY_SINGLE_QUOTE_LOW, Chars.LEFT_CURLY_DOUBLE_QUOTE, Chars.RIGHT_CURLY_DOUBLE_QUOTE, Chars.LEFT_CURLY_DOUBLE_QUOTE_LOW, Chars.LEFT_ANGLE_SINGLE_QUOTE, Chars.RIGHT_ANGLE_SINGLE_QUOTE, Chars.LEFT_ANGLE_DOUBLE_QUOTE, Chars.RIGHT_ANGLE_DOUBLE_QUOTE, Chars.LEFT_SQUARE_BRACKET, Chars.RIGHT_SQUARE_BRACKET, Chars.LEFT_ROUND_BRACKET, Chars.RIGHT_ROUND_BRACKET, Chars.LEFT_CURLY_BRACE, Chars.RIGHT_CURLY_BRACE];
@@ -890,6 +951,104 @@ namespace WinFormsLib
 
         public static void AddToolTip(this Control control, string caption) => _toolTip.SetToolTip(control, caption);
 
+        public static void AddToolTip(this ToolStripItem item, string caption)
+        {
+            item.AutoToolTip = false;
+            item.ToolTipText = string.Empty;
+            _toolStripToolTips[item] = caption;
+
+            if (!_toolStripToolTipTimerConfigured)
+            {
+                _toolStripToolTipTimer.Tick += ToolStripToolTipTimer_Tick;
+                _toolStripToolTipTimerConfigured = true;
+            }
+
+            item.MouseEnter -= ToolStripItem_MouseEnter;
+            item.MouseEnter += ToolStripItem_MouseEnter;
+            item.MouseLeave -= ToolStripItem_MouseLeave;
+            item.MouseLeave += ToolStripItem_MouseLeave;
+            item.Disposed -= ToolStripItem_Disposed;
+            item.Disposed += ToolStripItem_Disposed;
+        }
+
+        private static void ToolStripItem_MouseEnter(object? sender, EventArgs e)
+        {
+            _toolStripToolTipTimer.Stop();
+            _pendingToolStripToolTip = sender as ToolStripItem;
+            if (_pendingToolStripToolTip != null
+                && _toolStripToolTips.TryGetValue(_pendingToolStripToolTip, out string? caption)
+                && !string.IsNullOrEmpty(caption))
+            {
+                _toolStripToolTipTimer.Start();
+            }
+        }
+
+        private static void ToolStripItem_MouseLeave(object? sender, EventArgs e)
+        {
+            _toolStripToolTipTimer.Stop();
+            _pendingToolStripToolTip = null;
+            if (sender is ToolStripItem item && item.Owner != null)
+            {
+                _toolStripToolTip.Hide(item.Owner);
+            }
+        }
+
+        private static void ToolStripItem_Disposed(object? sender, EventArgs e)
+        {
+            if (sender is ToolStripItem item)
+            {
+                _toolStripToolTips.Remove(item);
+            }
+        }
+
+        private static void ToolStripToolTipTimer_Tick(object? sender, EventArgs e)
+        {
+            _toolStripToolTipTimer.Stop();
+            if (_pendingToolStripToolTip is ToolStripItem item
+                && item.Owner is ToolStrip owner
+                && _toolStripToolTips.TryGetValue(item, out string? caption)
+                && !string.IsNullOrEmpty(caption))
+            {
+                Point location = owner.PointToClient(Cursor.Position);
+                location.Offset(12, 20);
+                _toolStripToolTip.Show(caption, owner, location, TOOLTIP_AUTO_POP_DELAY);
+            }
+        }
+
+        public static void SetToolTipColors(Color foreColor, Color backColor)
+        {
+            _toolTip.ForeColor = foreColor;
+            _toolTip.BackColor = backColor;
+            _toolStripToolTip.ForeColor = foreColor;
+            _toolStripToolTip.BackColor = backColor;
+            if (_toolTipOwnerDrawConfigured)
+            {
+                return;
+            }
+
+            _toolTip.OwnerDraw = true;
+            _toolTip.Draw += ToolTip_Draw;
+            _toolStripToolTip.OwnerDraw = true;
+            _toolStripToolTip.Draw += ToolTip_Draw;
+            _toolTipOwnerDrawConfigured = true;
+        }
+
+        private static void ToolTip_Draw(object? sender, DrawToolTipEventArgs e)
+        {
+            ToolTip toolTip = sender as ToolTip ?? _toolTip;
+            using SolidBrush background = new(toolTip.BackColor);
+            e.Graphics.FillRectangle(background, e.Bounds);
+            ControlPaint.DrawBorder(e.Graphics, e.Bounds, ControlPaint.Dark(toolTip.BackColor), ButtonBorderStyle.Solid);
+            Rectangle textBounds = Rectangle.Inflate(e.Bounds, -4, -2);
+            TextRenderer.DrawText(
+                e.Graphics,
+                e.ToolTipText,
+                e.Font,
+                textBounds,
+                toolTip.ForeColor,
+                TextFormatFlags.NoPadding | TextFormatFlags.VerticalCenter);
+        }
+
         public static Image? GetThumbnailImage(Bitmap? bmp) => bmp?.GetThumbnailImage(bmp.Width, bmp.Height, null, IntPtr.Zero);
 
         public static void Dispose()
@@ -899,6 +1058,9 @@ namespace WinFormsLib
             _toolTip.Active = false;
             _toolTip.RemoveAll();
             _toolTip.Dispose();
+            _toolStripToolTip.Active = false;
+            _toolStripToolTip.RemoveAll();
+            _toolStripToolTip.Dispose();
             _label.Dispose();
         }
 

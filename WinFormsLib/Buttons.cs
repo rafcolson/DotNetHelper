@@ -33,7 +33,10 @@ namespace WinFormsLib
             Abort = 1 << 6,
             [Value(DialogResult.No)]
             [GlobalStringValue("No")]
-            No = 1 << 7
+            No = 1 << 7,
+            [Value(DialogResult.OK)]
+            [GlobalStringValue("Close")]
+            Close = 1 << 8
         }
 
         [Flags]
@@ -52,7 +55,49 @@ namespace WinFormsLib
             [Value(MessageBoxButtons.RetryCancel)]
             RetryCancel = DialogResultFlag.Retry | DialogResultFlag.Cancel,
             [Value(MessageBoxButtons.CancelTryContinue)]
-            CancelTryContinue = DialogResultFlag.Continue | DialogResultFlag.Retry | DialogResultFlag.Cancel
+            CancelTryContinue = DialogResultFlag.Continue | DialogResultFlag.Retry | DialogResultFlag.Cancel,
+            Close = DialogResultFlag.Close
+        }
+
+        public enum CommandButton
+        {
+            // File operations
+            [GlobalStringValue("New")]
+            New,
+            [GlobalStringValue("Open")]
+            Open,
+            [GlobalStringValue("Save")]
+            Save,
+            [GlobalStringValue("SaveAs")]
+            SaveAs,
+            [GlobalStringValue("Import")]
+            Import,
+            [GlobalStringValue("Export")]
+            Export,
+
+            // Selection and customization
+            [GlobalStringValue("Select")]
+            Select,
+            [GlobalStringValue("Browse")]
+            Browse,
+            [GlobalStringValue("Custom")]
+            Custom,
+
+            // Applying and restoring
+            [GlobalStringValue("Apply")]
+            Apply,
+            [GlobalStringValue("Refresh")]
+            Refresh,
+            [GlobalStringValue("Reset")]
+            Reset,
+            [GlobalStringValue("RestoreDefaults")]
+            RestoreDefaults,
+            [GlobalStringValue("Clear")]
+            Clear,
+
+            // Information
+            [GlobalStringValue("Info")]
+            Info
         }
 
         [Flags]
@@ -74,7 +119,9 @@ namespace WinFormsLib
             [GlobalStringValue("Edit")]
             Edit = 1 << 6,
             [GlobalStringValue("Move")]
-            Move = 1 << 7
+            Move = 1 << 7,
+            [GlobalStringValue("Clear")]
+            Clear = 1 << 8
         }
 
         [Flags]
@@ -86,7 +133,8 @@ namespace WinFormsLib
             AddRemoveMoveUpMoveDown = EditButton.Add | EditButton.Remove | EditButton.MoveUp | EditButton.MoveDown,
             AddRemoveMoveUpMoveDownSort = EditButton.Add | EditButton.Remove | EditButton.MoveUp | EditButton.MoveDown | EditButton.Sort,
             AddRemoveRenameMoveUpMoveDownSort = EditButton.Add | EditButton.Remove | EditButton.Rename | EditButton.MoveUp | EditButton.MoveDown | EditButton.Sort,
-            AddRemoveMoveUpMoveDownSortEdit = EditButton.Add | EditButton.Remove | EditButton.MoveUp | EditButton.MoveDown | EditButton.Sort | EditButton.Edit
+            AddRemoveMoveUpMoveDownSortEdit = EditButton.Add | EditButton.Remove | EditButton.MoveUp | EditButton.MoveDown | EditButton.Sort | EditButton.Edit,
+            RemoveClear = EditButton.Remove | EditButton.Clear
         }
 
         private static Button? GetButton(string globalStringValue, Font? font = null, Padding? margin = null)
@@ -141,7 +189,7 @@ namespace WinFormsLib
 
             private static void SetAcceptOrCancelButton(Button button, DialogResultFlag dialogResultFlag, Form form)
             {
-                DialogResultFlag acceptFlags = DialogResultFlag.OK | DialogResultFlag.Yes | DialogResultFlag.Retry;
+                DialogResultFlag acceptFlags = DialogResultFlag.OK | DialogResultFlag.Yes | DialogResultFlag.Retry | DialogResultFlag.Close;
                 DialogResultFlag cancelFlags = DialogResultFlag.Cancel | DialogResultFlag.No | DialogResultFlag.Abort;
                 if (acceptFlags.HasFlag(dialogResultFlag))
                 {

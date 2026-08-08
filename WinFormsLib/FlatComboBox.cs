@@ -54,17 +54,24 @@ namespace WinFormsLib
             get;
             set
             {
-                field = Math.Min(Math.Max(value, 1), UNDO_LEVELS_MAX);
+                field = Math.Min(Math.Max(value, 0), UNDO_LEVELS_MAX);
                 if (_history.Count > field)
                 {
-                    for (int i = 0, loopTo = _history.Count - field; i <= loopTo; i++)
-                    {
-                        _ = _history.Remove(0.ToString());
-                    }
+                    _history.RemoveRange(0, _history.Count - field);
                 }
-                historyIndex = _history.Count - 1;
+                historyIndex = Math.Max(_history.Count - 1, 0);
             }
         } = 10;
+
+        [System.ComponentModel.Browsable(false)]
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public string[] History => [.. _history];
+
+        [System.ComponentModel.Browsable(false)]
+        public bool CanUndo => _history.Any() && (historyIndex > 0 || Text != _history[historyIndex]);
+
+        [System.ComponentModel.Browsable(false)]
+        public bool CanRedo => _history.Any() && historyIndex < _history.Count - 1 && Text == _history[historyIndex];
 
         [System.ComponentModel.Browsable(false)]
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
@@ -250,15 +257,32 @@ namespace WinFormsLib
 
         public void UpdateHistory()
         {
-            if (UndoLevelsCount != 0 & Text.Any() & !(_history.Any() && (Text ?? "") == (_history[historyIndex] ?? "")))
+            if (UndoLevelsCount != 0 && Text.Any() && (!_history.Any() || Text != _history[historyIndex]))
             {
-                if (_history.Count == UndoLevelsCount)
+                if (_history.Count >= UndoLevelsCount)
                 {
                     _history.RemoveAt(0);
                 }
 
                 _history.Add(Text);
                 historyIndex = _history.Count - 1;
+            }
+        }
+
+        public void ReplaceHistory(IEnumerable<string> history)
+        {
+            _history.Clear();
+            _history.AddRange(history.Where(item => !string.IsNullOrEmpty(item)).TakeLast(UndoLevelsCount));
+            historyIndex = Math.Max(_history.Count - 1, 0);
+        }
+
+        public void SelectHistoryItem(string item)
+        {
+            int index = _history.LastIndexOf(item);
+            if (index >= 0)
+            {
+                historyIndex = index;
+                Text = _history[index];
             }
         }
 

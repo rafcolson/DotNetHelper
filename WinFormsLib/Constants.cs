@@ -12,13 +12,7 @@ namespace WinFormsLib
         public const string NEW_LINE = "\n";
         public const string ESCAPE_KEY = "{ESC}";
         public const string EXPLORER_EXE = "explorer.exe";
-        public static readonly string INVALID_CHARACTERS = new string([
-            Chars.BACKSLASH,
-            Chars.SLASH,
-            Chars.COLON,
-            Chars.ASTERISK,
-            Chars.QUESTION_MARK
-        ]) + Path.GetInvalidPathChars();
+        public static readonly string INVALID_CHARACTERS = new(Path.GetInvalidFileNameChars());
         public static readonly string STARTUP_DIRECTORY_DEFAULT = Utils.GetValidDirectoryPath();
         public static readonly CultureInfo CULTURE_INFO_DEFAULT = CultureInfo.InvariantCulture;
         public static readonly Font FONT_DEFAULT = new("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point);

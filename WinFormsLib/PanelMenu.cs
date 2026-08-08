@@ -406,7 +406,7 @@ namespace WinFormsLib
 
         private void Init()
         {
-            panels.Clear();
+            DisposePanels();
             foreach (Level l in Levels)
             {
                 int n = l.Items.Count();
@@ -425,6 +425,29 @@ namespace WinFormsLib
 
                 panels.Add(l.Name, p);
             }
+        }
+
+        private void DisposePanels()
+        {
+            AllMouseLeaveTimer.Stop();
+            foreach (Panel panel in panels.Values)
+            {
+                panel.Dispose();
+            }
+            panels.Clear();
+            _panelsActive.Clear();
+            menuMouseHover = false;
+            menuEventArgs = null;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                DisposePanels();
+                AllMouseLeaveTimer.Dispose();
+            }
+            base.Dispose(disposing);
         }
 
         private void RaisePanelButtonClick(PanelButton pb, MouseEventArgs e)

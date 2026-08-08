@@ -132,6 +132,24 @@
   <data name="Continue" xml:space="preserve">
     <value>Doorgaan</value>
   </data>
+  <data name="New" xml:space="preserve"><value>Nieuw...</value></data>
+  <data name="Open" xml:space="preserve"><value>Openen...</value></data>
+  <data name="Save" xml:space="preserve"><value>Opslaan</value></data>
+  <data name="SaveAs" xml:space="preserve"><value>Opslaan als...</value></data>
+  <data name="Import" xml:space="preserve"><value>Importeren...</value></data>
+  <data name="Export" xml:space="preserve"><value>Exporteren...</value></data>
+  <data name="Select" xml:space="preserve"><value>Selecteren...</value></data>
+  <data name="Browse" xml:space="preserve"><value>Bladeren...</value></data>
+  <data name="Custom" xml:space="preserve"><value>Aangepast...</value></data>
+  <data name="Apply" xml:space="preserve"><value>Toepassen</value></data>
+  <data name="Refresh" xml:space="preserve"><value>Vernieuwen</value></data>
+  <data name="Reset" xml:space="preserve"><value>Herstellen</value></data>
+  <data name="RestoreDefaults" xml:space="preserve"><value>Standaardinstellingen herstellen...</value></data>
+  <data name="Clear" xml:space="preserve"><value>Wissen</value></data>
+  <data name="Info" xml:space="preserve"><value>Info...</value></data>
+  <data name="Close" xml:space="preserve">
+    <value>Sluiten</value>
+  </data>
   <data name="Copy" xml:space="preserve">
     <value>Kopiëren</value>
   </data>
@@ -193,7 +211,7 @@
     <value>Verwijderen</value>
   </data>
   <data name="Rename" xml:space="preserve">
-    <value>Hernoemen</value>
+    <value>Hernoemen...</value>
   </data>
   <data name="Retry" xml:space="preserve">
     <value>Opnieuw proberen</value>

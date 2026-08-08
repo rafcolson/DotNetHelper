@@ -79,12 +79,99 @@ namespace WinFormsLib
             protected override void OnShown(EventArgs e)
             {
                 base.OnShown(e);
+                UpdateDialogLayout();
                 this.CenterOnScreen();
             }
+
+            protected override void OnDpiChanged(DpiChangedEventArgs e)
+            {
+                base.OnDpiChanged(e);
+                UpdateDialogLayout();
+            }
+
             protected override void Dispose(bool disposing)
             {
                 this.Clear();
                 base.Dispose(disposing);
+            }
+
+            private void UpdateDialogLayout()
+            {
+                UpdateDpiLayout();
+                UpdateCaptionMinimumSize();
+                UpdateTitleMinimumWidth();
+                PerformLayout();
+            }
+
+            private void UpdateTitleMinimumWidth()
+            {
+                if (string.IsNullOrEmpty(Text))
+                {
+                    return;
+                }
+
+                int titleWidth = TextRenderer.MeasureText(
+                    Text,
+                    SystemFonts.CaptionFont,
+                    Size.Empty,
+                    TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width;
+                int spacing = (int)Math.Ceiling(24 * DeviceDpi / 96d);
+                int nonClientWidth = SystemInformation.CaptionButtonSize.Width
+                    + (SystemInformation.FrameBorderSize.Width * 2)
+                    + spacing;
+                MainTableLayoutPanel.MinimumSize = new(
+                    titleWidth + nonClientWidth,
+                    MainTableLayoutPanel.MinimumSize.Height);
+            }
+
+            private int ScaleLogical(int value) => (int)Math.Round(value * DeviceDpi / 96d);
+
+            private Padding ScaleLogical(Padding value) => new(
+                ScaleLogical(value.Left),
+                ScaleLogical(value.Top),
+                ScaleLogical(value.Right),
+                ScaleLogical(value.Bottom));
+
+            private Size ScaleLogical(Size value) => new(ScaleLogical(value.Width), ScaleLogical(value.Height));
+
+            private void UpdateDpiLayout()
+            {
+                Button[] buttons = [.. DialogFlowLayoutPanel.Controls.OfType<Button>()];
+                if (buttons.Length > 0)
+                {
+                    Padding buttonMargin = ScaleLogical(PADDING_MINIMUM);
+                    Size buttonMinimumSize = ScaleLogical(BUTTON_SIZE_MINIMUM);
+                    Size buttonSize = GetMaxSize([.. buttons.Select(button => button.Text)], Font, buttonMargin, buttonMinimumSize);
+                    foreach (Button button in buttons)
+                    {
+                        button.Margin = buttonMargin;
+                        button.MinimumSize = buttonMinimumSize;
+                        button.Size = buttonSize;
+                    }
+                }
+            }
+
+            private void UpdateCaptionMinimumSize()
+            {
+                if (CaptionLabel.IsDisposed || string.IsNullOrEmpty(CaptionLabel.Text))
+                {
+                    return;
+                }
+
+                Size logicalDimensions = ScaleLogical(new Size(16, 9));
+                Padding scaledDefaultPadding = ScaleLogical(PADDING_DEFAULT);
+                Padding additionalPadding = new(
+                    scaledDefaultPadding.Left - PADDING_DEFAULT.Left,
+                    scaledDefaultPadding.Top - PADDING_DEFAULT.Top,
+                    scaledDefaultPadding.Right - PADDING_DEFAULT.Right,
+                    scaledDefaultPadding.Bottom - PADDING_DEFAULT.Bottom);
+                int captionWidth = CalculateSize(
+                    CaptionLabel.Text,
+                    CaptionLabel.Font,
+                    logicalDimensions,
+                    additionalPadding).Width;
+                int captionHeight = CaptionLabel.GetPreferredSize(new(captionWidth, 0)).Height;
+                CaptionLabel.MinimumSize = new(captionWidth, captionHeight + CaptionLabel.Font.Height);
             }
 
             private void InitializeComponent()
@@ -113,7 +200,7 @@ namespace WinFormsLib
                 MainTableLayoutPanel.AutoSize = true;
                 MainTableLayoutPanel.AutoSizeMode = AutoSizeMode.GrowAndShrink;
                 MainTableLayoutPanel.Dock = DockStyle.Fill;
-                MainTableLayoutPanel.Padding = PADDING_MINIMUM;
+                MainTableLayoutPanel.Padding = PADDING_DEFAULT;
                 MainTableLayoutPanel.ColumnCount = 1;
                 _ = MainTableLayoutPanel.ColumnStyles.Add(new(SizeType.AutoSize));
                 MainTableLayoutPanel.RowCount = 3;
@@ -126,7 +213,8 @@ namespace WinFormsLib
                 Name = "MainDialog";
                 AutoSize = true;
                 AutoSizeMode = AutoSizeMode.GrowAndShrink;
-                AutoScaleMode = AutoScaleMode.Font;
+                AutoScaleDimensions = new SizeF(96F, 96F);
+                AutoScaleMode = AutoScaleMode.Dpi;
                 SizeGripStyle = SizeGripStyle.Hide;
                 MaximizeBox = false;
                 MinimizeBox = false;
@@ -161,9 +249,6 @@ namespace WinFormsLib
 
                 CaptionLabel.Text = caption;
                 CaptionLabel.UpdateLinks(linkClickedAction: () => DialogResult = DialogResult.OK);
-                int captionWidth = CalculateSize(caption, font).Width;
-                int captionHeight = CaptionLabel.GetPreferredSize(new(captionWidth, 0)).Height;
-                CaptionLabel.MinimumSize = new(captionWidth, captionHeight + CaptionLabel.Font.Height);
                 _ = DialogResultButtons.AddButtons(DialogFlowLayoutPanel, buttons);
             }
         }
@@ -392,8 +477,7 @@ namespace WinFormsLib
 
             protected readonly Map<string, object?> _input;
 
-            [Obsolete]
-            protected override void OnClosed(EventArgs e)
+            protected override void OnFormClosed(FormClosedEventArgs e)
             {
                 if (AcceptButton != null && DialogResult == AcceptButton.DialogResult)
                 {
@@ -410,7 +494,7 @@ namespace WinFormsLib
                     }
                     _ = (OnUpdate?.Invoke());
                 }
-                base.OnClosed(e);
+                base.OnFormClosed(e);
             }
 
             private void TextBox_MouseDown(object? sender, MouseEventArgs e)
@@ -524,14 +608,13 @@ namespace WinFormsLib
                 base.OnShown(e);
             }
 
-            [Obsolete]
-            protected override void OnClosed(EventArgs e)
+            protected override void OnFormClosed(FormClosedEventArgs e)
             {
                 if (AcceptButton != null && DialogResult == AcceptButton.DialogResult)
                 {
                     _items.Replace(Items.Cast<object>());
                 }
-                base.OnClosed(e);
+                base.OnFormClosed(e);
             }
 
             private async void AddItemAsync(object? sender, EventArgs e)
@@ -572,6 +655,12 @@ namespace WinFormsLib
                 {
                     SelectedIndex = i == n ? i - 1 : i;
                 }
+            }
+
+            private void ClearItems(object? sender, EventArgs e)
+            {
+                Items.Clear();
+                UpdateEditButtons();
             }
 
             private async void RenameItemAsync(object? sender, EventArgs e)
@@ -630,6 +719,9 @@ namespace WinFormsLib
                         case EditButton.Move:
                         case EditButton.Edit:
                             editButton.Enabled = hasItemSelected;
+                            break;
+                        case EditButton.Clear:
+                            editButton.Enabled = Items.Count != 0;
                             break;
                         case EditButton.MoveUp:
                             editButton.Enabled = hasItemSelected & SelectedIndex != 0;
@@ -760,6 +852,9 @@ namespace WinFormsLib
                         case EditButton.Edit:
                             editButton.Click += EditItemAsync;
                             break;
+                        case EditButton.Clear:
+                            editButton.Click += ClearItems;
+                            break;
                     }
                 }
                 ActiveControl = EditListBox;
@@ -785,7 +880,7 @@ namespace WinFormsLib
                 }
                 TimerLabel.Text = $"{_numSeconds}";
             }
-            private void DelayedActionDialog_Closing(object? sender, CancelEventArgs e)
+            private void DelayedActionDialog_FormClosing(object? sender, CancelEventArgs e)
             {
                 _timer.Stop();
                 _timer.Tick -= Timer_Tick;
@@ -823,7 +918,7 @@ namespace WinFormsLib
                     TabStop = false
                 };
                 MainTableLayoutPanel.Controls.Add(TimerLabel, 0, 1);
-                Closing += DelayedActionDialog_Closing;
+                FormClosing += DelayedActionDialog_FormClosing;
                 _numSeconds = delaySeconds;
                 _action = action;
                 _timer = new() { Interval = 1000, Enabled = true };
