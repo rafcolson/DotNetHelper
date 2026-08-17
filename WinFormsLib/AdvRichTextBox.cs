@@ -6,24 +6,19 @@ using System.Text.RegularExpressions;
 namespace WinFormsLib
 {
 
-    public sealed class RtfCharacterStyle
+    public sealed class RtfCharacterStyle(string name, Font font, Color color)
     {
 
-        public string Name { get; private set; }
-        public Font Font { get; private set; }
-        public Color Color { get; private set; }
-
-        public RtfCharacterStyle(string name, Font font, Color color)
-        {
-            Name = name;
-            Font = font;
-            Color = color;
-        }
-
+        public string Name { get; private set; } = name;
+        public Font Font { get; private set; } = font;
+        public Color Color { get; private set; } = color;
     }
 
-    public class AdvRichTextBox : RichTextBox
+    public partial class AdvRichTextBox : RichTextBox
     {
+
+        [GeneratedRegex(@"\\f(\d+)")]
+        private static partial Regex RtfFontIndexRegex();
 
         #region Initialization
 
@@ -42,7 +37,18 @@ namespace WinFormsLib
 
         private readonly System.Windows.Forms.Timer ScrollToCaretTimer;
 
-        private void AllMouseLeaveTimer_Tick(object sender, EventArgs e)
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                ScrollToCaretTimer.Stop();
+                ScrollToCaretTimer.Tick -= AllMouseLeaveTimer_Tick;
+                ScrollToCaretTimer.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        private void AllMouseLeaveTimer_Tick(object? sender, EventArgs e)
         {
             ScrollToCaretTimer.Stop();
             base.ScrollToCaret();
@@ -112,7 +118,7 @@ namespace WinFormsLib
             int start = SelectionStart;
             base.AppendText(text);
 
-            if (!characterStyle.Equals(0) && text.Any())
+            if (!characterStyle.Equals(0) && text.Length != 0)
             {
                 AddCharacterStyleRange(start, text.Length, characterStyle);
             }
@@ -287,7 +293,7 @@ namespace WinFormsLib
 
         private void AddCharacterStyleRange(int start, int length, short style)
         {
-            if (characterStyleRanges.Any())
+            if (characterStyleRanges.Count != 0)
             {
                 CharacterStyleRange previous = characterStyleRanges.Last();
                 if (previous.Style.Equals(style) && previous.Start + previous.Length == start)
@@ -420,7 +426,7 @@ namespace WinFormsLib
                 SetSelectionStyle(CFM_UNDERLINE, 0U);
                 plainLinks.Add(new PlainLink(position, length, text));
             }
-            if (!characterStyle.Equals(0) && text.Any())
+            if (!characterStyle.Equals(0) && text.Length != 0)
             {
                 AddCharacterStyleRange(position, length, characterStyle);
             }
@@ -428,14 +434,14 @@ namespace WinFormsLib
             SetSelectionStyle(mask, effects);
         }
 
-        public string GetRtfWithCharacterStyles(IDictionary<short, RtfCharacterStyle> styles)
+        public string? GetRtfWithCharacterStyles(IDictionary<short, RtfCharacterStyle> styles)
         {
             if (styles.Count.Equals(0) || characterStyleRanges.Count.Equals(0))
             {
                 return Rtf;
             }
 
-            List<KeyValuePair<short, RtfCharacterStyle>> activeStyles = styles.Where(style => characterStyleRanges.Any(range => range.Style.Equals(style.Key))).ToList();
+            List<KeyValuePair<short, RtfCharacterStyle>> activeStyles = [.. styles.Where(style => characterStyleRanges.Any(range => range.Style.Equals(style.Key)))];
             if (activeStyles.Count.Equals(0))
             {
                 return Rtf;
@@ -451,11 +457,12 @@ namespace WinFormsLib
                 SelectedText = markerPrefix + "START" + range.Style;
             }
 
-            string styledRtf = Rtf;
+            string styledRtf = Rtf
+                ?? throw new InvalidOperationException("RichTextBox did not provide RTF content.");
             int fontTableStart = styledRtf.IndexOf(@"{\fonttbl", StringComparison.Ordinal);
             int fontTableEnd = FindRtfGroupEnd(styledRtf, fontTableStart);
-            int nextFontIndex = Regex
-                .Matches(styledRtf.Substring(fontTableStart, fontTableEnd - fontTableStart + 1), @"\\f(\d+)")
+            int nextFontIndex = RtfFontIndexRegex()
+                .Matches(styledRtf.Substring(fontTableStart, fontTableEnd - fontTableStart + 1))
                 .Cast<Match>()
                 .Select(item => int.Parse(item.Groups[1].Value))
                 .DefaultIfEmpty(-1)
@@ -502,9 +509,9 @@ namespace WinFormsLib
                 {
                     _ = styleSheet.Append(@"\strike");
                 }
-                _ = styleSheet.Append(" ").Append(EscapeRtf(style.Value.Name)).Append(";}");
+                _ = styleSheet.Append(' ').Append(EscapeRtf(style.Value.Name)).Append(";}");
             }
-            _ = styleSheet.Append("}");
+            _ = styleSheet.Append('}');
 
             foreach (KeyValuePair<short, RtfCharacterStyle> style in activeStyles)
             {
@@ -565,14 +572,13 @@ namespace WinFormsLib
                 return;
             }
 
-            PlainLink link = GetPlainLink(e.Location);
-            if (!(link == null))
+            if (GetPlainLink(e.Location) is PlainLink link)
             {
                 OnLinkClicked(new LinkClickedEventArgs(link.Text));
             }
         }
 
-        private PlainLink GetPlainLink(Point location)
+        private PlainLink? GetPlainLink(Point location)
         {
             int index = GetCharIndexFromPosition(location);
             return plainLinks.FirstOrDefault(link => link.Contains(index));

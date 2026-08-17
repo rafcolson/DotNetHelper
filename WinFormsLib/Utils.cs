@@ -97,7 +97,7 @@ namespace WinFormsLib
 
             if (string.IsNullOrEmpty(text))
             {
-                return occurrences.ToArray();
+                return [.. occurrences];
             }
 
             if (!matchCase)
@@ -110,7 +110,7 @@ namespace WinFormsLib
 
             if (options.Equals(WordSearchOptions.ExactPhrase))
             {
-                words = new string[] { phrase };
+                words = [phrase];
             }
             else
             {
@@ -120,7 +120,7 @@ namespace WinFormsLib
                     _ = s.Trim();
                     l.Add(s);
                 }
-                words = l.ToArray();
+                words = [.. l];
             }
 
             int n = text.Length;
@@ -143,7 +143,7 @@ namespace WinFormsLib
                     {
                         if (partialMatch || CommonPunctuationMarks.Contains(c))
                         {
-                            occurrence.Add(new int[] { o, i - o });
+                            occurrence.Add([o, i - o]);
                         }
 
                         o = -1;
@@ -179,10 +179,10 @@ namespace WinFormsLib
 
                 if (j == m)
                 {
-                    occurrence.Add(new int[] { o, n - o });
+                    occurrence.Add([o, n - o]);
                 }
 
-                if (options.Equals(WordSearchOptions.AllWords) && !occurrence.Any())
+                if (options.Equals(WordSearchOptions.AllWords) && occurrence.Count == 0)
                 {
                     occurrences.Clear();
                     break;
@@ -196,7 +196,7 @@ namespace WinFormsLib
                 occurrence.Clear();
             }
 
-            return occurrences.ToArray();
+            return [.. occurrences];
         }
 
         public static void ShutDown()
@@ -997,7 +997,7 @@ namespace WinFormsLib
         {
             if (sender is ToolStripItem item)
             {
-                _toolStripToolTips.Remove(item);
+                _ = _toolStripToolTips.Remove(item);
             }
         }
 

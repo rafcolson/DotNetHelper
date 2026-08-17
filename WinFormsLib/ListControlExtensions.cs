@@ -23,7 +23,7 @@ namespace WinFormsLib
 
         public static T[] GetItems<T>(this ListControl super)
         {
-            return super is ComboBox cb ? [.. cb.Items.Cast<T>()] : super is ListBox lb ? [.. lb.Items.Cast<T>()] : Array.Empty<T>();
+            return super is ComboBox cb ? [.. cb.Items.Cast<T>()] : super is ListBox lb ? [.. lb.Items.Cast<T>()] : [];
         }
 
         public static T[] TakeItems<T>(this ListControl super, Range range) => [.. super.GetItems<T>().Take(range)];

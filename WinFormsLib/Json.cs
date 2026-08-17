@@ -19,34 +19,19 @@ namespace WinFormsLib
                 return "Nothing";
             }
 
-            string? result;
-            if (o is bool b)
-            {
-                result = ToJson(b);
-            }
-            else if (o is int i)
-            {
-                result = ToJson(i);
-            }
-            else if (o is long l)
-            {
-                result = ToJson(l);
-            }
-            else if (o is float f)
-            {
-                result = ToJson(f);
-            }
-            else if (o is double d)
-            {
-                result = ToJson(d);
-            }
-            else
-            {
-                result = o is string s
+            string? result = o is bool b
+                ? ToJson(b)
+                : o is int i
+                    ? ToJson(i)
+                    : o is long l
+                    ? ToJson(l)
+                    : o is float f
+                    ? ToJson(f)
+                    : o is double d
+                    ? ToJson(d)
+                    : o is string s
                     ? ToJson(s)
                     : o is System.Drawing.Color c ? ToJson(c) : o is IDictionary id ? ToJson(id) : o is IEnumerable ie ? ToJson(ie) : o.ToString();
-            }
-
             return result;
         }
 

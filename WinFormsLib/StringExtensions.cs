@@ -302,9 +302,9 @@ namespace WinFormsLib
             return d;
         }
 
-        public static T? AsEnumFromGlobal<T>(this string super) where T : Enum
+        public static T? AsEnumFromGlobal<T>(this string super) where T : struct, Enum
         {
-            foreach (T t in Enum.GetValues(typeof(T)))
+            foreach (T t in Enum.GetValues<T>())
             {
                 if (super == t.GetGlobalStringValue())
                 {

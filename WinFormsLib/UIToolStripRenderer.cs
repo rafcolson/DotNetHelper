@@ -6,14 +6,9 @@ namespace WinFormsLib
     /// Uses the themed professional renderer while drawing a simple,
     /// DPI-aware selection mark for checked menu items.
     /// </summary>
-    public sealed class UIToolStripRenderer : ToolStripProfessionalRenderer
+    public sealed class UIToolStripRenderer(UIColorTable colorTable) : ToolStripProfessionalRenderer(colorTable)
     {
-        private readonly UIColorTable _colorTable;
-
-        public UIToolStripRenderer(UIColorTable colorTable) : base(colorTable)
-        {
-            _colorTable = colorTable ?? throw new ArgumentNullException(nameof(colorTable));
-        }
+        private readonly UIColorTable _colorTable = colorTable ?? throw new ArgumentNullException(nameof(colorTable));
 
         protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
         {
@@ -57,11 +52,11 @@ namespace WinFormsLib
             else
             {
                 PointF[] points =
-                {
+                [
                     new(bounds.Left + (bounds.Width * 0.18F), bounds.Top + (bounds.Height * 0.52F)),
                     new(bounds.Left + (bounds.Width * 0.4F), bounds.Top + (bounds.Height * 0.74F)),
                     new(bounds.Left + (bounds.Width * 0.82F), bounds.Top + (bounds.Height * 0.26F))
-                };
+                ];
                 e.Graphics.DrawLines(pen, points);
             }
 

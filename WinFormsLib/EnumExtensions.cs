@@ -39,9 +39,9 @@ namespace WinFormsLib
             return false;
         }
 
-        public static T[] GetContainingFlags<T>(this T comboFlag, bool includeCombo = false) where T : Enum
+        public static T[] GetContainingFlags<T>(this T comboFlag, bool includeCombo = false) where T : struct, Enum
         {
-            IEnumerable<T> values = Enum.GetValues(typeof(T)).Cast<T>();
+            IEnumerable<T> values = Enum.GetValues<T>();
             IEnumerable<T> relevantFlags = values.Where(v => comboFlag.ContainsFlag(v));
             if (!includeCombo)
             {
@@ -61,6 +61,6 @@ namespace WinFormsLib
             return [.. relevantFlags];
         }
 
-        public static int GetFlagIndex<T>(this T enumFlag) where T : Enum => Array.IndexOf(Enum.GetValues(typeof(T)), enumFlag);
+        public static int GetFlagIndex<T>(this T enumFlag) where T : struct, Enum => Array.IndexOf(Enum.GetValues<T>(), enumFlag);
     }
 }

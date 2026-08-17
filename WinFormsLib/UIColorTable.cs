@@ -3,37 +3,30 @@ using System.Runtime.InteropServices;
 namespace WinFormsLib
 {
 
-    public class UIColorTable : ProfessionalColorTable
+    public class UIColorTable(UIColorScheme uiClrSchm, bool useGradientColors = false) : ProfessionalColorTable
     {
         private static string[] GetKnownColorNames()
         {
             List<string> colorNames = [];
-            foreach (KnownColor kc in Enum.GetValues(typeof(KnownColor)))
+            foreach (KnownColor kc in Enum.GetValues<KnownColor>())
             {
-                string n = Enum.GetName(typeof(KnownColor), kc);
-                if (!n.Equals("Transparent"))
+                if (Enum.GetName(kc) is string n && !n.Equals("Transparent"))
                 {
                     colorNames.Add(n);
                 }
             }
-            return colorNames.ToArray();
+            return [.. colorNames];
         }
 
         public UIColorTable(ref Color foreColor, ref Color backColor, [Optional, DefaultParameterValue(0.5d)] ref double contrast, [Optional, DefaultParameterValue(false)] ref bool useGradientColors) : this(new UIColorScheme(foreColor, backColor, contrast), useGradientColors)
         {
         }
 
-        public UIColorTable(UIColorScheme uiClrSchm, bool useGradientColors = false)
-        {
-            ColorScheme = uiClrSchm;
-            UseGradient = useGradientColors;
-        }
-
         public static string[] KnownColorNames { get; } = GetKnownColorNames();
 
-        public UIColorScheme ColorScheme { get; }
+        public UIColorScheme ColorScheme { get; } = uiClrSchm;
 
-        public bool UseGradient { get; set; }
+        public bool UseGradient { get; set; } = useGradientColors;
 
         public override Color ToolStripDropDownBackground
         {

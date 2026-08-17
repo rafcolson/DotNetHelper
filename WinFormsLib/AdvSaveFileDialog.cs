@@ -44,7 +44,7 @@ public sealed class AdvSaveFileDialog
             finally
             {
                 Marshal.FreeCoTaskMem(pathPointer);
-                Marshal.ReleaseComObject(item);
+                _ = Marshal.ReleaseComObject(item);
             }
             FilterIndex = (int)filterIndex;
             return DialogResult.OK;
@@ -55,7 +55,7 @@ public sealed class AdvSaveFileDialog
             {
                 dialog.Unadvise(cookie);
             }
-            Marshal.ReleaseComObject(dialog);
+            _ = Marshal.ReleaseComObject(dialog);
         }
     }
 

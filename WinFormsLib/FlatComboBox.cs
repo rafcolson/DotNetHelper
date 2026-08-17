@@ -68,10 +68,10 @@ namespace WinFormsLib
         public string[] History => [.. _history];
 
         [System.ComponentModel.Browsable(false)]
-        public bool CanUndo => _history.Any() && (historyIndex > 0 || Text != _history[historyIndex]);
+        public bool CanUndo => _history.Count != 0 && (historyIndex > 0 || Text != _history[historyIndex]);
 
         [System.ComponentModel.Browsable(false)]
-        public bool CanRedo => _history.Any() && historyIndex < _history.Count - 1 && Text == _history[historyIndex];
+        public bool CanRedo => _history.Count != 0 && historyIndex < _history.Count - 1 && Text == _history[historyIndex];
 
         [System.ComponentModel.Browsable(false)]
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
@@ -257,7 +257,7 @@ namespace WinFormsLib
 
         public void UpdateHistory()
         {
-            if (UndoLevelsCount != 0 && Text.Any() && (!_history.Any() || Text != _history[historyIndex]))
+            if (UndoLevelsCount != 0 && Text.Length != 0 && (_history.Count == 0 || Text != _history[historyIndex]))
             {
                 if (_history.Count >= UndoLevelsCount)
                 {
@@ -294,7 +294,7 @@ namespace WinFormsLib
         public void Cut()
         {
             string s = SelectedText;
-            if (s.Any())
+            if (s.Length != 0)
             {
                 Clipboard.SetText(s);
                 SelectedText = string.Empty;
@@ -304,7 +304,7 @@ namespace WinFormsLib
         public void Copy()
         {
             string s = SelectedText;
-            if (s.Any())
+            if (s.Length != 0)
             {
                 Clipboard.SetText(s);
             }
@@ -326,7 +326,7 @@ namespace WinFormsLib
 
         public void Undo()
         {
-            if (_history.Any())
+            if (_history.Count != 0)
             {
                 string s = _history[historyIndex];
                 if ((s ?? "") != (Text ?? ""))
@@ -343,7 +343,7 @@ namespace WinFormsLib
 
         public void Redo()
         {
-            if (_history.Any() & historyIndex < _history.Count - 1)
+            if (_history.Count != 0 & historyIndex < _history.Count - 1)
             {
                 historyIndex += 1;
                 Text = _history[historyIndex];

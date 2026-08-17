@@ -8,7 +8,7 @@ namespace WinFormsLib
         private readonly Dictionary<string, Panel> panels = [];
         private readonly List<string> _panelsActive = [];
 
-        private Form form;
+        private Form? form;
         private bool menuMouseHover = false;
         private EventArgs? menuEventArgs = null;
         private Size _buttonSize = new(40, 40);
@@ -16,13 +16,13 @@ namespace WinFormsLib
         private Color _buttonActiveBackColor;
         private readonly System.Windows.Forms.Timer AllMouseLeaveTimer;
 
-        public event MenuMouseLeaveEventHandler MenuMouseLeave;
+        public event MenuMouseLeaveEventHandler? MenuMouseLeave;
 
-        public delegate void MenuMouseLeaveEventHandler(object sender, EventArgs e);
-        public event MenuMouseEnterEventHandler MenuMouseEnter;
+        public delegate void MenuMouseLeaveEventHandler(object? sender, EventArgs e);
+        public event MenuMouseEnterEventHandler? MenuMouseEnter;
 
-        public delegate void MenuMouseEnterEventHandler(object sender, EventArgs e);
-        public event PanelButtonClickEventHandler PanelButtonClick;
+        public delegate void MenuMouseEnterEventHandler(object? sender, EventArgs e);
+        public event PanelButtonClickEventHandler? PanelButtonClick;
 
         public delegate void PanelButtonClickEventHandler(PanelButton button, MouseEventArgs e);
 
@@ -158,21 +158,14 @@ namespace WinFormsLib
             public string Target { get; set; } = string.IsNullOrEmpty(child) ? string.Empty : child;
         }
 
-        public class Level
+        public class Level(string? name = null, string? parent = null, PanelMenu.Item[]? items = null)
         {
-            public string Parent { get; set; }
-            public string Name { get; set; }
-            public Item[] Items { get; set; }
+            public string Parent { get; set; } = string.IsNullOrEmpty(parent) ? string.Empty : parent;
+            public string Name { get; set; } = string.IsNullOrEmpty(name) ? string.Empty : name;
+            public Item[] Items { get; set; } = items ?? [];
 
             public Level() : this(null, null, null)
             {
-            }
-
-            public Level(string? name = null, string? parent = null, Item[]? items = null)
-            {
-                Name = string.IsNullOrEmpty(name) ? string.Empty : name;
-                Parent = string.IsNullOrEmpty(parent) ? string.Empty : parent;
-                Items = items ?? (new Item[] { });
             }
         }
 
@@ -234,12 +227,12 @@ namespace WinFormsLib
                 }
             }
 
-            private void On_MouseEnter(object sender, EventArgs e)
+            private void On_MouseEnter(object? sender, EventArgs e)
             {
                 Root.AllMouseEnter(e);
             }
 
-            private void On_MouseLeave(object sender, EventArgs e)
+            private void On_MouseLeave(object? sender, EventArgs e)
             {
                 Root.AllMouseLeave(e);
             }
@@ -250,11 +243,11 @@ namespace WinFormsLib
         {
 
             internal PanelMenu Root { get; private set; }
-            internal Panel ParentPanel { get; private set; }
+            internal Panel? ParentPanel { get; private set; }
             [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
             internal PanelButton? ActiveButton { get; set; } = null;
 
-            internal Panel(PanelMenu root, Panel parent, string name, int rowCount, int columnCount) : base()
+            internal Panel(PanelMenu root, Panel? parent, string name, int rowCount, int columnCount) : base()
             {
                 AutoSize = true;
                 AutoSizeMode = AutoSizeMode.GrowAndShrink;
@@ -305,62 +298,67 @@ namespace WinFormsLib
                 Controls.Add(pb);
             }
 
-            private void On_PanelButton_Click(object sender, MouseEventArgs e)
+            private void On_PanelButton_Click(object? sender, MouseEventArgs e)
             {
-                PanelButton pb = (PanelButton)sender;
-                if (!string.IsNullOrEmpty(pb.PanelName))
+                if (sender is object o)
                 {
-                    if (Root.panels.ContainsKey(pb.PanelName))
+                    PanelButton pb = (PanelButton)o;
+                    if (!string.IsNullOrEmpty(pb.PanelName))
                     {
-                        if (!Root.Opened(pb.PanelName))
+                        if (Root.panels.ContainsKey(pb.PanelName))
                         {
-                            Panel panel = Root.panels[pb.PanelName];
-                            if (!(panel.ParentPanel == null))
+                            if (!Root.Opened(pb.PanelName))
                             {
-                                if (!(panel.ParentPanel.ActiveButton == null))
+                                Panel panel = Root.panels[pb.PanelName];
+                                if (!(panel.ParentPanel == null))
                                 {
-                                    Root.Close(panel.ParentPanel.ActiveButton.PanelName);
+                                    if (!(panel.ParentPanel.ActiveButton == null))
+                                    {
+                                        Root.Close(panel.ParentPanel.ActiveButton.PanelName);
+                                    }
                                 }
+                                Root.Open(pb.PanelName);
                             }
-                            Root.Open(pb.PanelName);
                         }
+                        else
+                        {
+                            _ = MessageBox.Show("Target level with name '" + pb.PanelName + "' does not exist.");
+                        }
+                    }
+                    else if (!Root.panels.ContainsKey(pb.Name))
+                    {
+                        List<string> l = [pb.Name];
+                        Control? c = pb.Parent;
+                        while (c != null)
+                        {
+                            Panel p = (Panel)c;
+                            l.Add(p.Name);
+                            c = p.ParentPanel;
+                        }
+                        l.Reverse();
+                        Root.LastSelection = [.. l];
+                        Root.RaisePanelButtonClick(pb, e);
+                        Root.Close();
                     }
                     else
                     {
-                        _ = MessageBox.Show("Target level with name '" + pb.PanelName + "' does not exist.");
+                        _ = MessageBox.Show("No target assigned to level with name '" + pb.Name + "'.");
                     }
                 }
-                else if (!Root.panels.ContainsKey(pb.Name))
-                {
-                    List<string> l = [pb.Name];
-                    Panel p = (Panel)pb.Parent;
-                    while (!(p == null))
-                    {
-                        l.Add(p.Name);
-                        p = p.ParentPanel;
-                    }
-                    l.Reverse();
-                    Root.LastSelection = l.ToArray();
-                    Root.RaisePanelButtonClick(pb, e);
-                    Root.Close();
-                }
-                else
-                {
-                    _ = MessageBox.Show("No target assigned to level with name '" + pb.Name + "'.");
-                }
+
             }
 
-            private void On_MouseEnter(object sender, EventArgs e)
+            private void On_MouseEnter(object? sender, EventArgs e)
             {
                 Root.AllMouseEnter(e);
             }
 
-            private void On_MouseLeave(object sender, EventArgs e)
+            private void On_MouseLeave(object? sender, EventArgs e)
             {
                 Root.AllMouseLeave(e);
             }
 
-            private void On_Paint(object sender, PaintEventArgs e)
+            private void On_Paint(object? sender, PaintEventArgs e)
             {
                 Rectangle borderRectangle = ClientRectangle;
                 borderRectangle.Inflate(1, 1);
@@ -409,13 +407,13 @@ namespace WinFormsLib
             DisposePanels();
             foreach (Level l in Levels)
             {
-                int n = l.Items.Count();
+                int n = l.Items.Length;
                 int x = (int)Math.Round(Math.Max(Math.Min(n / (double)ColumnCountMax, RowCountMax), 1d));
                 int y = (int)Math.Round(Math.Max(Math.Min(n / (double)RowCountMax, ColumnCountMax), 1d));
-                Panel pp = null;
-                if (!string.IsNullOrEmpty(l.Parent) && panels.ContainsKey(l.Parent))
+                Panel? pp = null;
+                if (!string.IsNullOrEmpty(l.Parent) && panels.TryGetValue(l.Parent, out Panel? value))
                 {
-                    pp = panels[l.Parent];
+                    pp = value;
                 }
                 Panel p = new(this, pp, l.Name, x, y);
                 foreach (Item it in l.Items)
@@ -477,12 +475,15 @@ namespace WinFormsLib
             AllMouseLeaveTimer.Start();
         }
 
-        private void AllMouseLeaveTimer_Tick(object sender, EventArgs e)
+        private void AllMouseLeaveTimer_Tick(object? sender, EventArgs e)
         {
             if (!menuMouseHover)
             {
                 AllMouseLeaveTimer.Stop();
-                MenuMouseLeave?.Invoke(this, menuEventArgs);
+                if (menuEventArgs is EventArgs eventArgs)
+                {
+                    MenuMouseLeave?.Invoke(this, eventArgs);
+                }
                 menuEventArgs = null;
                 if (Opened())
                 {
@@ -491,17 +492,17 @@ namespace WinFormsLib
             }
         }
 
-        private void On_MouseEnter(object sender, EventArgs e)
+        private void On_MouseEnter(object? sender, EventArgs e)
         {
             AllMouseEnter(e);
         }
 
-        private void On_MouseLeave(object sender, EventArgs e)
+        private void On_MouseLeave(object? sender, EventArgs e)
         {
             AllMouseLeave(e);
         }
 
-        private void On_ForeColorChanged(object sender, EventArgs e)
+        private void On_ForeColorChanged(object? sender, EventArgs e)
         {
             foreach (Panel p in panels.Values)
             {
@@ -514,7 +515,7 @@ namespace WinFormsLib
             }
         }
 
-        private void On_BackColorChanged(object sender, EventArgs e)
+        private void On_BackColorChanged(object? sender, EventArgs e)
         {
             foreach (Panel p in panels.Values)
             {
@@ -527,7 +528,7 @@ namespace WinFormsLib
             }
         }
 
-        private void On_Click(object sender, EventArgs e)
+        private void On_Click(object? sender, EventArgs e)
         {
             if (Opened())
             {
@@ -545,29 +546,36 @@ namespace WinFormsLib
 
         public void Open(string? panelName = null)
         {
+            Form ownerForm = form ?? FindForm()
+                ?? throw new InvalidOperationException("PanelMenu must be added to a form before a panel can be opened.");
+            form = ownerForm;
             if (string.IsNullOrEmpty(panelName))
             {
                 panelName = panels.First().Key;
             }
             Panel panel = panels[panelName];
-            if (!(panel.ParentPanel == null))
+            if (panel.ParentPanel is Panel parentPanel)
             {
-                if (!(panel.ParentPanel.ActiveButton == null))
+                if (parentPanel.ActiveButton is not null)
                 {
-                    Close(panel.ParentPanel.ActiveButton.PanelName);
+                    Close(parentPanel.ActiveButton.PanelName);
                 }
-                panel.ParentPanel.ActiveButton = (PanelButton)panel.ParentPanel.Controls[panelName];
-                panel.ParentPanel.ActiveButton.Active(true);
+                if (parentPanel.Controls[panelName] is not PanelButton activeButton)
+                {
+                    throw new InvalidOperationException($"Panel button '{panelName}' was not found in parent panel '{parentPanel.Name}'.");
+                }
+                parentPanel.ActiveButton = activeButton;
+                activeButton.Active(true);
             }
             panel.UpdateLocation();
-            form.Controls.Add(panel);
+            ownerForm.Controls.Add(panel);
             panel.BringToFront();
             _panelsActive.Add(panelName);
         }
 
         public void OpenLast()
         {
-            if (LastSelection.Any())
+            if (LastSelection.Length != 0)
             {
                 foreach (string panelName in LastSelection)
                 {
@@ -577,7 +585,7 @@ namespace WinFormsLib
                     }
                 }
             }
-            else if (panels.Any())
+            else if (panels.Count != 0)
             {
                 Open();
             }
@@ -594,18 +602,18 @@ namespace WinFormsLib
             {
                 Close(panel.ActiveButton.PanelName);
             }
-            if (!(panel.ParentPanel == null))
+            if (panel.ParentPanel is Panel parentPanel)
             {
-                panel.ParentPanel.ActiveButton.Active(false);
-                panel.ParentPanel.ActiveButton = null;
+                parentPanel.ActiveButton?.Active(false);
+                parentPanel.ActiveButton = null;
             }
-            form.Controls.Remove(panel);
+            form?.Controls.Remove(panel);
             _ = _panelsActive.Remove(panelName);
         }
 
         public bool Opened(string? panelName = null)
         {
-            if (panels.Any())
+            if (panels.Count != 0)
             {
                 if (string.IsNullOrEmpty(panelName))
                 {

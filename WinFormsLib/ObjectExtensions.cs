@@ -6,9 +6,9 @@ namespace WinFormsLib
 {
     public static class ObjectExtensions
     {
-        public static T? ToEnum<T>(this object super) where T : Enum
+        public static T? ToEnum<T>(this object super) where T : struct, Enum
         {
-            foreach (T t in Enum.GetValues(typeof(T)))
+            foreach (T t in Enum.GetValues<T>())
             {
                 if (super == t.GetValue<object>())
                 {
