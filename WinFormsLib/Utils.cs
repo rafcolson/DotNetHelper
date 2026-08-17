@@ -782,6 +782,49 @@ namespace WinFormsLib
             return mso.ToArray();
         }
 
+        public static void Zipped(string archivePath, IEnumerable<string> filePaths)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(archivePath);
+            ArgumentNullException.ThrowIfNull(filePaths);
+
+            string[] paths = [.. filePaths];
+            if (paths.Length == 0)
+            {
+                throw new ArgumentException("At least one file is required.", nameof(filePaths));
+            }
+
+            string[] entryNames = [.. paths.Select(path => Path.GetFileName(path)
+                ?? throw new ArgumentException("File paths must include a file name.", nameof(filePaths)))];
+            if (entryNames.Distinct(StringComparer.OrdinalIgnoreCase).Count() != entryNames.Length)
+            {
+                throw new ArgumentException("Archive entry names must be unique.", nameof(filePaths));
+            }
+
+            string fullArchivePath = Path.GetFullPath(archivePath);
+            string temporaryPath = fullArchivePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+
+            try
+            {
+                using (FileStream stream = new(temporaryPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                using (ZipArchive archive = new(stream, ZipArchiveMode.Create))
+                {
+                    foreach (string path in paths)
+                    {
+                        _ = archive.CreateEntryFromFile(path, Path.GetFileName(path), CompressionLevel.Optimal);
+                    }
+                }
+
+                File.Move(temporaryPath, fullArchivePath, true);
+            }
+            finally
+            {
+                if (File.Exists(temporaryPath))
+                {
+                    File.Delete(temporaryPath);
+                }
+            }
+        }
+
         public static string Unzipped(byte[] bytes)
         {
             using MemoryStream msi = new(bytes);
@@ -792,6 +835,42 @@ namespace WinFormsLib
             }
             msi.Close();
             return Encoding.UTF8.GetString(mso.ToArray());
+        }
+
+        public static string[] Unzipped(string archivePath, string outputDirectory)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(archivePath);
+            ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
+
+            string destinationRoot = Path.GetFullPath(outputDirectory)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                + Path.DirectorySeparatorChar;
+            _ = Directory.CreateDirectory(destinationRoot);
+
+            List<string> extractedFiles = [];
+            using ZipArchive archive = ZipFile.OpenRead(archivePath);
+            foreach (ZipArchiveEntry entry in archive.Entries)
+            {
+                string destinationPath = Path.GetFullPath(Path.Combine(destinationRoot, entry.FullName));
+                if (!destinationPath.StartsWith(destinationRoot, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException($"Archive entry '{entry.FullName}' is outside the destination directory.");
+                }
+
+                if (string.IsNullOrEmpty(entry.Name))
+                {
+                    _ = Directory.CreateDirectory(destinationPath);
+                    continue;
+                }
+
+                string parentPath = Path.GetDirectoryName(destinationPath)
+                    ?? throw new InvalidDataException($"Archive entry '{entry.FullName}' has no destination directory.");
+                _ = Directory.CreateDirectory(parentPath);
+                entry.ExtractToFile(destinationPath, true);
+                extractedFiles.Add(destinationPath);
+            }
+
+            return [.. extractedFiles];
         }
 
         public static Icon GetIcon(string path)
