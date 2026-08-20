@@ -136,8 +136,43 @@ namespace WinFormsLib
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Font ButtonFont { get; set; }
 
+        public void SetButtonAppearance(Size buttonSize, Font buttonFont)
+        {
+            ArgumentNullException.ThrowIfNull(buttonFont);
+            _buttonSize = buttonSize;
+            ButtonFont = buttonFont;
+
+            foreach (Panel panel in panels.Values)
+            {
+                foreach (PanelButton button in panel.Controls)
+                {
+                    button.UpdateAppearance();
+                }
+                panel.PerformLayout();
+            }
+
+            foreach (string panelName in _panelsActive)
+            {
+                panels[panelName].UpdateLocation();
+            }
+        }
+
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public bool UseCollapsing { get; set; } = false;
+
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
+        public bool FillByColumns
+        {
+            get;
+            set
+            {
+                if (field != value)
+                {
+                    field = value;
+                    Init();
+                }
+            }
+        }
 
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public string[] LastSelection { get; set; } = [];
@@ -189,8 +224,6 @@ namespace WinFormsLib
             {
                 FlatStyle = FlatStyle.Flat;
                 FlatAppearance.BorderSize = 0;
-                int scaledMargin = Math.Max((int)Math.Round(Math.Round(RootDpi(parentPanel) / 96.0d)), 1);
-                Margin = new Padding(scaledMargin);
                 Name = name;
                 Text = text;
                 PanelName = panelName;
@@ -201,16 +234,18 @@ namespace WinFormsLib
                 InActiveBackColor = Root.BackColor;
                 ActiveForeColor = Root.ButtonActiveForeColor;
                 ActiveBackColor = Root.ButtonActiveBackColor;
-                Width = Root.ScaledButtonSize.Width - (scaledMargin * 2);
-                Height = Root.ScaledButtonSize.Height - (scaledMargin * 2);
-                Font = Root.ButtonFont;
+                UpdateAppearance();
                 MouseEnter += On_MouseEnter;
                 MouseLeave += On_MouseLeave;
             }
 
-            private static int RootDpi(Panel parentPanel)
+            internal void UpdateAppearance()
             {
-                return parentPanel.Root.DeviceDpi;
+                int scaledMargin = Math.Max((int)Math.Round(Math.Round(Root.DeviceDpi / 96.0d)), 1);
+                Margin = new Padding(scaledMargin);
+                Width = Root.ScaledButtonSize.Width - (scaledMargin * 2);
+                Height = Root.ScaledButtonSize.Height - (scaledMargin * 2);
+                Font = Root.ButtonFont;
             }
 
             public void Active(bool isActive)
@@ -290,12 +325,21 @@ namespace WinFormsLib
                 Location = p;
             }
 
-            internal void AddButton(string name, string text, string panelName)
+            internal void AddButton(string name, string text, string panelName, int index, int itemCount)
             {
                 PanelButton pb = new(this, name, text, panelName);
                 pb.Active(false);
                 pb.MouseClick += On_PanelButton_Click;
-                Controls.Add(pb);
+                if (Root.FillByColumns)
+                {
+                    int effectiveRowCount = Math.Max((int)Math.Ceiling(itemCount / (double)ColumnCount), 1);
+                    RowCount = effectiveRowCount;
+                    Controls.Add(pb, index / effectiveRowCount, index % effectiveRowCount);
+                }
+                else
+                {
+                    Controls.Add(pb);
+                }
             }
 
             private void On_PanelButton_Click(object? sender, MouseEventArgs e)
@@ -416,9 +460,10 @@ namespace WinFormsLib
                     pp = value;
                 }
                 Panel p = new(this, pp, l.Name, x, y);
-                foreach (Item it in l.Items)
+                for (int index = 0; index < l.Items.Length; index++)
                 {
-                    p.AddButton(it.Name, it.Text, it.Target);
+                    Item it = l.Items[index];
+                    p.AddButton(it.Name, it.Text, it.Target, index, l.Items.Length);
                 }
 
                 panels.Add(l.Name, p);
