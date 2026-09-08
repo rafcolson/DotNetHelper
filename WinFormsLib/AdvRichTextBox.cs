@@ -6,12 +6,13 @@ using System.Text.RegularExpressions;
 namespace WinFormsLib
 {
 
-    public sealed class RtfCharacterStyle(string name, Font font, Color color)
+    public sealed class RtfCharacterStyle(string name, Font font, Color color, float raise = 0)
     {
 
         public string Name { get; private set; } = name;
         public Font Font { get; private set; } = font;
         public Color Color { get; private set; } = color;
+        public float Raise { get; private set; } = Math.Max(raise, 0);
     }
 
     public partial class AdvRichTextBox : RichTextBox
@@ -95,7 +96,7 @@ namespace WinFormsLib
             Justify = 4
         }
 
-        public void AppendText(string text, Font? font = null, Color? color = null, string? highlighted = null, short characterStyle = 0)
+        public void AppendText(string text, Font? font = null, Color? color = null, string? highlighted = null, short characterStyle = 0, float raise = 0)
         {
 
             if (!(font == null))
@@ -107,6 +108,7 @@ namespace WinFormsLib
             {
                 SelectionColor = color.Value;
             }
+            SelectionCharOffset = (int)Math.Round(Math.Max(raise, 0) * DeviceDpi / 72d);
 
             int offset = default;
 
@@ -478,6 +480,7 @@ namespace WinFormsLib
             int nextColorIndex = styledRtf.Substring(colorTableStart, colorTableEnd - colorTableStart + 1).Count(character => character.Equals(';'));
 
             StringBuilder styleSheet = new(@"{\stylesheet");
+            Dictionary<short, string> directStyleFormatting = [];
             foreach (KeyValuePair<short, RtfCharacterStyle> style in activeStyles)
             {
                 int fontIndex = nextFontIndex;
@@ -510,18 +513,44 @@ namespace WinFormsLib
                     _ = styleSheet.Append(@"\strike");
                 }
                 _ = styleSheet.Append(' ').Append(EscapeRtf(style.Value.Name)).Append(";}");
+
+                StringBuilder directFormatting = new();
+                _ = directFormatting.Append(@"\fs").Append((int)Math.Round(style.Value.Font.SizeInPoints * 2.0f)).Append(@"\cf").Append(colorIndex);
+                if (style.Value.Font.Bold)
+                {
+                    _ = directFormatting.Append(@"\b");
+                }
+                if (style.Value.Font.Italic)
+                {
+                    _ = directFormatting.Append(@"\i");
+                }
+                if (style.Value.Font.Underline)
+                {
+                    _ = directFormatting.Append(@"\ul");
+                }
+                if (style.Value.Font.Strikeout)
+                {
+                    _ = directFormatting.Append(@"\strike");
+                }
+                directStyleFormatting.Add(style.Key, directFormatting.ToString());
             }
             _ = styleSheet.Append('}');
 
             foreach (KeyValuePair<short, RtfCharacterStyle> style in activeStyles)
             {
-                styledRtf = styledRtf.Replace(markerPrefix + "START" + style.Key, @"{\cs" + style.Key + " ").Replace(markerPrefix + "END" + style.Key, "}");
+                styledRtf = styledRtf
+                    .Replace(markerPrefix + "START" + style.Key, @"{\cs" + style.Key + directStyleFormatting[style.Key] + " ")
+                    .Replace(markerPrefix + "END" + style.Key, "}");
             }
 
-            int insertionIndex = styledRtf.IndexOf(@"{\fonttbl", StringComparison.Ordinal);
-            if (insertionIndex.Equals(-1))
+            colorTableStart = styledRtf.IndexOf(@"{\colortbl", StringComparison.Ordinal);
+            colorTableEnd = FindRtfGroupEnd(styledRtf, colorTableStart);
+            int insertionIndex = colorTableEnd + 1;
+            if (colorTableStart.Equals(-1) || colorTableEnd.Equals(-1))
             {
-                insertionIndex = styledRtf.IndexOf(' ');
+                int fontTablePosition = styledRtf.IndexOf(@"{\fonttbl", StringComparison.Ordinal);
+                int fontTablePositionEnd = FindRtfGroupEnd(styledRtf, fontTablePosition);
+                insertionIndex = fontTablePositionEnd >= 0 ? fontTablePositionEnd + 1 : styledRtf.IndexOf(' ');
             }
             return styledRtf.Insert(insertionIndex, styleSheet.ToString());
         }

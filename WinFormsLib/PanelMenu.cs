@@ -186,11 +186,12 @@ namespace WinFormsLib
             Right = 1
         }
 
-        public class Item(string? name = null, string? text = null, string? child = null)
+        public class Item(string? name = null, string? text = null, string? child = null, bool enabled = true)
         {
             public string Name { get; set; } = string.IsNullOrEmpty(name) ? string.Empty : name;
             public string Text { get; set; } = string.IsNullOrEmpty(text) ? string.Empty : text;
             public string Target { get; set; } = string.IsNullOrEmpty(child) ? string.Empty : child;
+            public bool Enabled { get; set; } = enabled;
         }
 
         public class Level(string? name = null, string? parent = null, PanelMenu.Item[]? items = null)
@@ -325,9 +326,9 @@ namespace WinFormsLib
                 Location = p;
             }
 
-            internal void AddButton(string name, string text, string panelName, int index, int itemCount)
+            internal void AddButton(string name, string text, string panelName, bool enabled, int index, int itemCount)
             {
-                PanelButton pb = new(this, name, text, panelName);
+                PanelButton pb = new(this, name, text, panelName) { Enabled = enabled };
                 pb.Active(false);
                 pb.MouseClick += On_PanelButton_Click;
                 if (Root.FillByColumns)
@@ -463,7 +464,7 @@ namespace WinFormsLib
                 for (int index = 0; index < l.Items.Length; index++)
                 {
                     Item it = l.Items[index];
-                    p.AddButton(it.Name, it.Text, it.Target, index, l.Items.Length);
+                    p.AddButton(it.Name, it.Text, it.Target, it.Enabled, index, l.Items.Length);
                 }
 
                 panels.Add(l.Name, p);
