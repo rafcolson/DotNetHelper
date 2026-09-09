@@ -1,4 +1,3 @@
-using System.Data;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -269,11 +268,6 @@ namespace WinFormsLib
                 Length = length;
                 Text = text;
             }
-
-            internal bool Contains(int index)
-            {
-                return index >= Start && index < Start + Length;
-            }
         }
 
         private class CharacterStyleRange
@@ -311,9 +305,10 @@ namespace WinFormsLib
         private const int WM_USER = 0x400;
         private const int EM_GETCHARFORMAT = WM_USER + 58;
         private const int EM_SETCHARFORMAT = WM_USER + 68;
+        private const uint CFE_UNDERLINE = 4U;
         private const uint CFE_LINK = 32U;
-        private const uint CFM_LINK = 32U;
         private const uint CFM_UNDERLINE = 4U;
+        private const uint CFM_LINK = 32U;
 
         [System.ComponentModel.Browsable(false)]
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
@@ -422,6 +417,7 @@ namespace WinFormsLib
             if (underlined)
             {
                 SetSelectionStyle(CFM_LINK, CFE_LINK);
+                SetSelectionStyle(CFM_UNDERLINE, CFE_UNDERLINE);
             }
             else
             {
@@ -586,12 +582,6 @@ namespace WinFormsLib
             return -1;
         }
 
-        protected override void OnMouseMove(MouseEventArgs e)
-        {
-            base.OnMouseMove(e);
-            Cursor = GetPlainLink(e.Location) is null ? Cursors.IBeam : Cursors.Hand;
-        }
-
         protected override void OnMouseClick(MouseEventArgs e)
         {
             base.OnMouseClick(e);
@@ -601,16 +591,50 @@ namespace WinFormsLib
                 return;
             }
 
-            if (GetPlainLink(e.Location) is PlainLink link)
+            PlainLink? link = GetPlainLink(e.Location);
+            if (link is null)
+            {
+                Cursor = Cursors.IBeam;
+                return;
+            }
+
+            Cursor = Cursors.Hand;
+            try
             {
                 OnLinkClicked(new LinkClickedEventArgs(link.Text));
+            }
+            finally
+            {
+                Cursor = Cursors.IBeam;
             }
         }
 
         private PlainLink? GetPlainLink(Point location)
         {
             int index = GetCharIndexFromPosition(location);
-            return plainLinks.FirstOrDefault(link => link.Contains(index));
+            int lower = 0;
+            int upper = plainLinks.Count - 1;
+
+            while (lower <= upper)
+            {
+                int middle = lower + ((upper - lower) / 2);
+                PlainLink link = plainLinks[middle];
+
+                if (index < link.Start)
+                {
+                    upper = middle - 1;
+                }
+                else if (index >= link.Start + link.Length)
+                {
+                    lower = middle + 1;
+                }
+                else
+                {
+                    return link;
+                }
+            }
+
+            return null;
         }
 
         #endregion
