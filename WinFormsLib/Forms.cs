@@ -73,6 +73,7 @@ namespace WinFormsLib
         public class MessageDialog : Form
         {
             protected readonly LinkLabel CaptionLabel = new();
+            protected readonly Panel CaptionPanel = new();
             protected readonly FlowLayoutPanel DialogFlowLayoutPanel = new();
             protected readonly TableLayoutPanel MainTableLayoutPanel = new();
 
@@ -98,8 +99,9 @@ namespace WinFormsLib
             private void UpdateDialogLayout()
             {
                 UpdateDpiLayout();
-                UpdateCaptionMinimumSize();
                 UpdateTitleMinimumWidth();
+                PerformLayout();
+                UpdateCaptionMinimumSize();
                 PerformLayout();
             }
 
@@ -119,9 +121,9 @@ namespace WinFormsLib
                 int nonClientWidth = SystemInformation.CaptionButtonSize.Width
                     + (SystemInformation.FrameBorderSize.Width * 2)
                     + spacing;
-                MainTableLayoutPanel.MinimumSize = new(
+                MinimumSize = new(
                     titleWidth + nonClientWidth,
-                    MainTableLayoutPanel.MinimumSize.Height);
+                    MinimumSize.Height);
             }
 
             private int ScaleLogical(int value) => (int)Math.Round(value * DeviceDpi / 96d);
@@ -158,34 +160,61 @@ namespace WinFormsLib
                     return;
                 }
 
+                Rectangle workingArea = Screen.FromControl(this).WorkingArea;
                 Size logicalDimensions = ScaleLogical(new Size(16, 9));
-                Padding scaledDefaultPadding = ScaleLogical(PADDING_DEFAULT);
+                Padding scaledPadding = ScaleLogical(PADDING_DEFAULT);
                 Padding additionalPadding = new(
-                    scaledDefaultPadding.Left - PADDING_DEFAULT.Left,
-                    scaledDefaultPadding.Top - PADDING_DEFAULT.Top,
-                    scaledDefaultPadding.Right - PADDING_DEFAULT.Right,
-                    scaledDefaultPadding.Bottom - PADDING_DEFAULT.Bottom);
-                int captionWidth = CalculateSize(
-                    CaptionLabel.Text,
-                    CaptionLabel.Font,
-                    logicalDimensions,
-                    additionalPadding).Width;
-                int captionHeight = CaptionLabel.GetPreferredSize(new(captionWidth, 0)).Height;
-                CaptionLabel.MinimumSize = new(captionWidth, captionHeight + CaptionLabel.Font.Height);
+                    scaledPadding.Left - PADDING_DEFAULT.Left,
+                    scaledPadding.Top - PADDING_DEFAULT.Top,
+                    scaledPadding.Right - PADDING_DEFAULT.Right,
+                    scaledPadding.Bottom - PADDING_DEFAULT.Bottom);
+
+                int calculatedCaptionWidth = CalculateSize(CaptionLabel.Text, CaptionLabel.Font, logicalDimensions, additionalPadding).Width;
+                int nonClientWidth = Width - ClientSize.Width;
+                int horizontalSpacing = MainTableLayoutPanel.Padding.Horizontal + CaptionPanel.Margin.Horizontal;
+                int windowCaptionWidth = Math.Max(0, MinimumSize.Width - nonClientWidth - horizontalSpacing);
+                int maximumCaptionWidth = Math.Max(CaptionLabel.Font.Height, workingArea.Width - nonClientWidth - horizontalSpacing);
+                int captionWidth = Math.Min(Math.Max(calculatedCaptionWidth, windowCaptionWidth), maximumCaptionWidth);
+
+                CaptionLabel.MinimumSize = Size.Empty;
+                CaptionLabel.MaximumSize = new(captionWidth, 0);
+                int preferredCaptionHeight = CaptionLabel.GetPreferredSize(new(captionWidth, 0)).Height;
+
+                int nonClientHeight = Height - ClientSize.Height;
+                int reservedHeight = nonClientHeight
+                    + MainTableLayoutPanel.Padding.Vertical
+                    + CaptionPanel.Margin.Vertical
+                    + DialogFlowLayoutPanel.GetPreferredSize(Size.Empty).Height
+                    + DialogFlowLayoutPanel.Margin.Vertical;
+                int maximumCaptionHeight = Math.Max(CaptionLabel.Font.Height, workingArea.Height - reservedHeight);
+                bool verticalScrollBarVisible = preferredCaptionHeight > maximumCaptionHeight;
+                int captionPanelWidth = captionWidth + (verticalScrollBarVisible ? SystemInformation.VerticalScrollBarWidth : 0);
+                CaptionPanel.MinimumSize = new(captionPanelWidth, Math.Min(preferredCaptionHeight, maximumCaptionHeight));
+                CaptionPanel.MaximumSize = new(0, maximumCaptionHeight);
             }
 
             private void InitializeComponent()
             {
                 SuspendLayout();
                 CaptionLabel.SuspendLayout();
+                CaptionPanel.SuspendLayout();
                 DialogFlowLayoutPanel.SuspendLayout();
                 MainTableLayoutPanel.SuspendLayout();
 
                 CaptionLabel.Name = "CaptionLabel";
-                CaptionLabel.Dock = DockStyle.Fill;
-                CaptionLabel.Margin = PADDING_MINIMUM;
+                CaptionLabel.AutoSize = true;
+                CaptionLabel.Margin = Padding.Empty;
                 CaptionLabel.LinkBehavior = LinkBehavior.HoverUnderline;
                 CaptionLabel.TabStop = false;
+                CaptionLabel.UseMnemonic = false;
+
+                CaptionPanel.Name = "CaptionPanel";
+                CaptionPanel.AutoScroll = true;
+                CaptionPanel.AutoSize = true;
+                CaptionPanel.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+                CaptionPanel.Dock = DockStyle.Fill;
+                CaptionPanel.Margin = PADDING_MINIMUM;
+                CaptionPanel.TabStop = false;
 
                 DialogFlowLayoutPanel.Name = "DialogFlowLayoutPanel";
                 DialogFlowLayoutPanel.AutoSize = true;
@@ -223,10 +252,12 @@ namespace WinFormsLib
                 TopMost = true;
 
                 Controls.Add(MainTableLayoutPanel);
-                MainTableLayoutPanel.Controls.Add(CaptionLabel, 0, 0);
+                CaptionPanel.Controls.Add(CaptionLabel);
+                MainTableLayoutPanel.Controls.Add(CaptionPanel, 0, 0);
                 MainTableLayoutPanel.Controls.Add(DialogFlowLayoutPanel, 0, 2);
 
                 CaptionLabel.ResumeLayout();
+                CaptionPanel.ResumeLayout();
                 DialogFlowLayoutPanel.ResumeLayout();
                 MainTableLayoutPanel.ResumeLayout();
                 MainTableLayoutPanel.PerformLayout();
@@ -285,8 +316,8 @@ namespace WinFormsLib
 
                 if (string.IsNullOrEmpty(caption))
                 {
-                    MainTableLayoutPanel.Controls.Remove(CaptionLabel);
-                    CaptionLabel.Dispose();
+                    MainTableLayoutPanel.Controls.Remove(CaptionPanel);
+                    CaptionPanel.Dispose();
                 }
                 MainTableLayoutPanel.Controls.Add(CheckBox, 0, 1);
             }
@@ -317,8 +348,8 @@ namespace WinFormsLib
                 };
                 if (string.IsNullOrEmpty(caption))
                 {
-                    MainTableLayoutPanel.Controls.Remove(CaptionLabel);
-                    CaptionLabel.Dispose();
+                    MainTableLayoutPanel.Controls.Remove(CaptionPanel);
+                    CaptionPanel.Dispose();
                 }
                 MainTableLayoutPanel.Controls.Add(PictureBox, 0, 1);
             }
@@ -463,8 +494,8 @@ namespace WinFormsLib
                 DropDownList.Items.AddRange(items);
                 if (string.IsNullOrEmpty(caption))
                 {
-                    MainTableLayoutPanel.Controls.Remove(CaptionLabel);
-                    CaptionLabel.Dispose();
+                    MainTableLayoutPanel.Controls.Remove(CaptionPanel);
+                    CaptionPanel.Dispose();
                 }
                 MainTableLayoutPanel.Controls.Add(DropDownList, 0, 1);
                 SelectedIndex = selectedIndex;
@@ -574,8 +605,8 @@ namespace WinFormsLib
 
                 if (string.IsNullOrEmpty(caption))
                 {
-                    MainTableLayoutPanel.Controls.Remove(CaptionLabel);
-                    CaptionLabel.Dispose();
+                    MainTableLayoutPanel.Controls.Remove(CaptionPanel);
+                    CaptionPanel.Dispose();
                 }
                 MainTableLayoutPanel.Controls.Add(InputTableLayoutPanel, 0, 1);
                 if (InputTableLayoutPanel.GetControlFromPosition(1, 0) is TextBox tb1)
@@ -819,8 +850,8 @@ namespace WinFormsLib
                 }
                 if (string.IsNullOrEmpty(caption))
                 {
-                    MainTableLayoutPanel.Controls.Remove(CaptionLabel);
-                    CaptionLabel.Dispose();
+                    MainTableLayoutPanel.Controls.Remove(CaptionPanel);
+                    CaptionPanel.Dispose();
                 }
                 MainTableLayoutPanel.Controls.Add(EditTableLayoutPanel, 0, 1);
                 EditTableLayoutPanel.Controls.Add(EditListBox, 0, 0);
@@ -903,8 +934,8 @@ namespace WinFormsLib
             {
                 if (string.IsNullOrEmpty(caption))
                 {
-                    MainTableLayoutPanel.Controls.Remove(CaptionLabel);
-                    CaptionLabel.Dispose();
+                    MainTableLayoutPanel.Controls.Remove(CaptionPanel);
+                    CaptionPanel.Dispose();
                 }
                 TimerLabel = new()
                 {

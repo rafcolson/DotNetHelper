@@ -48,6 +48,15 @@ namespace WinFormsLib
         };
         private static ToolStripItem? _pendingToolStripToolTip;
         private static bool _toolStripToolTipTimerConfigured;
+        private static readonly Dictionary<TabControl, int?> _tabToolTips = [];
+        private static readonly System.Windows.Forms.Timer _tabToolTipTimer = new()
+        {
+            Interval = TOOLTIP_INITIAL_DELAY
+        };
+        private static int _tabToolTipInitialDelay = TOOLTIP_INITIAL_DELAY;
+        private static TabControl? _pendingTabToolTip;
+        private static int _pendingTabIndex = -1;
+        private static bool _tabToolTipTimerConfigured;
 
         public enum WordSearchOptions
         {
@@ -998,7 +1007,16 @@ namespace WinFormsLib
         {
             List<LinkLabel.Link> l = [];
             textLinkPairs ??= GetUrls(text).ToDictionary(x => x);
-            l.AddRange(textLinkPairs.Select(kvp => new LinkLabel.Link(text.IndexOf(kvp.Key), kvp.Key.Length) { LinkData = kvp.Value }));
+            foreach (KeyValuePair<string, string> kvp in textLinkPairs)
+            {
+                int textIndex = text.IndexOf(kvp.Key);
+                if (textIndex < 0)
+                {
+                    continue;
+                }
+                int linkIndex = textIndex - text[..textIndex].Count(character => character == '\r');
+                l.Add(new(linkIndex, kvp.Key.Length) { LinkData = kvp.Value });
+            }
             return [.. l];
         }
 
@@ -1029,6 +1047,127 @@ namespace WinFormsLib
         }
 
         public static void AddToolTip(this Control control, string caption) => _toolTip.SetToolTip(control, caption);
+
+        public static void SetToolTipInitialDelay(int initialDelay) =>
+            _toolTip.InitialDelay = Math.Max(initialDelay, 1);
+
+        public static void SetToolStripToolTipInitialDelay(int initialDelay)
+        {
+            int delay = Math.Max(initialDelay, 1);
+            _toolStripToolTip.InitialDelay = delay;
+            _toolStripToolTipTimer.Interval = delay;
+        }
+
+        public static void SetTabToolTipInitialDelay(int initialDelay)
+        {
+            _tabToolTipInitialDelay = Math.Max(initialDelay, 1);
+            _tabToolTipTimer.Interval = _tabToolTipInitialDelay;
+            foreach (TabControl tabControl in _tabToolTips.Keys.ToArray())
+            {
+                if (_tabToolTips[tabControl] != null)
+                {
+                    _tabToolTips[tabControl] = _tabToolTipInitialDelay;
+                }
+            }
+        }
+
+        public static void SetTabToolTips(this TabControl tabControl, bool enabled)
+        {
+            tabControl.ShowToolTips = false;
+            if (!_tabToolTips.ContainsKey(tabControl))
+            {
+                tabControl.MouseMove += TabControl_MouseMove;
+                tabControl.MouseLeave += TabControl_MouseLeave;
+                tabControl.Disposed += TabControl_Disposed;
+            }
+            _tabToolTips[tabControl] = enabled ? _tabToolTipInitialDelay : null;
+
+            if (!_tabToolTipTimerConfigured)
+            {
+                _tabToolTipTimer.Tick += TabToolTipTimer_Tick;
+                _tabToolTipTimerConfigured = true;
+            }
+
+            if (!enabled && ReferenceEquals(_pendingTabToolTip, tabControl))
+            {
+                HideTabToolTip(tabControl);
+            }
+        }
+
+        private static void TabControl_MouseMove(object? sender, MouseEventArgs e)
+        {
+            if (sender is not TabControl tabControl
+                || !_tabToolTips.TryGetValue(tabControl, out int? initialDelay)
+                || initialDelay == null)
+            {
+                return;
+            }
+
+            int tabIndex = -1;
+            for (int index = 0; index < tabControl.TabCount; index++)
+            {
+                if (tabControl.GetTabRect(index).Contains(e.Location))
+                {
+                    tabIndex = index;
+                    break;
+                }
+            }
+
+            if (ReferenceEquals(_pendingTabToolTip, tabControl) && _pendingTabIndex == tabIndex)
+            {
+                return;
+            }
+
+            HideTabToolTip(_pendingTabToolTip);
+            if (tabIndex >= 0 && !string.IsNullOrEmpty(tabControl.TabPages[tabIndex].ToolTipText))
+            {
+                _pendingTabToolTip = tabControl;
+                _pendingTabIndex = tabIndex;
+                _tabToolTipTimer.Interval = initialDelay.Value;
+                _tabToolTipTimer.Start();
+            }
+        }
+
+        private static void TabControl_MouseLeave(object? sender, EventArgs e)
+        {
+            if (sender is TabControl tabControl)
+            {
+                HideTabToolTip(tabControl);
+            }
+        }
+
+        private static void TabControl_Disposed(object? sender, EventArgs e)
+        {
+            if (sender is TabControl tabControl)
+            {
+                HideTabToolTip(tabControl);
+                _ = _tabToolTips.Remove(tabControl);
+            }
+        }
+
+        private static void TabToolTipTimer_Tick(object? sender, EventArgs e)
+        {
+            _tabToolTipTimer.Stop();
+            if (_pendingTabToolTip is TabControl tabControl
+                && _pendingTabIndex >= 0
+                && _pendingTabIndex < tabControl.TabCount)
+            {
+                Point location = tabControl.PointToClient(Cursor.Position);
+                location.Offset(12, 20);
+                _toolTip.Show(tabControl.TabPages[_pendingTabIndex].ToolTipText, tabControl, location, TOOLTIP_AUTO_POP_DELAY);
+            }
+        }
+
+        private static void HideTabToolTip(TabControl? tabControl)
+        {
+            _tabToolTipTimer.Stop();
+            if (tabControl != null)
+            {
+                _toolTip.Hide(tabControl);
+            }
+            _pendingTabToolTip = null;
+            _pendingTabIndex = -1;
+        }
 
         public static void AddToolTip(this ToolStripItem item, string caption)
         {
@@ -1140,6 +1279,9 @@ namespace WinFormsLib
             _toolStripToolTip.Active = false;
             _toolStripToolTip.RemoveAll();
             _toolStripToolTip.Dispose();
+            _tabToolTipTimer.Stop();
+            _tabToolTipTimer.Dispose();
+            _tabToolTips.Clear();
             _label.Dispose();
         }
 
