@@ -56,7 +56,15 @@ namespace WinFormsLib
 
         public new void ScrollToCaret()
         {
-            ScrollToCaretTimer.Start();
+            if (updating > 0)
+            {
+                ScrollToCaretTimer.Stop();
+                base.ScrollToCaret();
+            }
+            else
+            {
+                ScrollToCaretTimer.Start();
+            }
         }
 
         #endregion
@@ -97,6 +105,10 @@ namespace WinFormsLib
 
         public void AppendText(string text, Font? font = null, Color? color = null, string? highlighted = null, short characterStyle = 0, float raise = 0)
         {
+            // Highlighting temporarily selects matches in previously appended text. Always
+            // restore the caret to the end before applying the formatting for the next run.
+            SelectionStart = TextLength;
+            SelectionLength = 0;
 
             if (!(font == null))
             {
@@ -141,7 +153,8 @@ namespace WinFormsLib
                 }
             }
 
-            DeselectAll();
+            SelectionStart = TextLength;
+            SelectionLength = 0;
         }
 
         #endregion
@@ -450,9 +463,9 @@ namespace WinFormsLib
             foreach (CharacterStyleRange range in characterStyleRanges.Where(item => activeStyles.Any(style => style.Key.Equals(item.Style))).OrderByDescending(item => item.Start))
             {
                 Select(range.Start + range.Length, 0);
-                SelectedText = markerPrefix + "END" + range.Style;
+                SelectedText = markerPrefix + "END" + GetAlphabeticMarkerSuffix(range.Style);
                 Select(range.Start, 0);
-                SelectedText = markerPrefix + "START" + range.Style;
+                SelectedText = markerPrefix + "START" + GetAlphabeticMarkerSuffix(range.Style);
             }
 
             string styledRtf = Rtf
@@ -534,9 +547,10 @@ namespace WinFormsLib
 
             foreach (KeyValuePair<short, RtfCharacterStyle> style in activeStyles)
             {
+                string markerSuffix = GetAlphabeticMarkerSuffix(style.Key);
                 styledRtf = styledRtf
-                    .Replace(markerPrefix + "START" + style.Key, @"{\cs" + style.Key + directStyleFormatting[style.Key] + " ")
-                    .Replace(markerPrefix + "END" + style.Key, "}");
+                    .Replace(markerPrefix + "START" + markerSuffix, @"{\cs" + style.Key + directStyleFormatting[style.Key] + " ")
+                    .Replace(markerPrefix + "END" + markerSuffix, @"}\up0 ");
             }
 
             colorTableStart = styledRtf.IndexOf(@"{\colortbl", StringComparison.Ordinal);
@@ -549,6 +563,20 @@ namespace WinFormsLib
                 insertionIndex = fontTablePositionEnd >= 0 ? fontTablePositionEnd + 1 : styledRtf.IndexOf(' ');
             }
             return styledRtf.Insert(insertionIndex, styleSheet.ToString());
+        }
+
+        private static string GetAlphabeticMarkerSuffix(short value)
+        {
+            // Keep the entire marker alphabetic so RichEdit does not insert bidi controls
+            // between the marker and a numeric suffix next to right-to-left text.
+            uint markerValue = (ushort)value;
+            Span<char> suffix = stackalloc char[4];
+            for (int index = suffix.Length - 1; index >= 0; index--)
+            {
+                suffix[index] = (char)('A' + (markerValue & 0xF));
+                markerValue >>= 4;
+            }
+            return new string(suffix);
         }
 
         private static string EscapeRtf(string value)

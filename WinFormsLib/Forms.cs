@@ -284,6 +284,73 @@ namespace WinFormsLib
             }
         }
 
+        public class TextDialog : MessageDialog
+        {
+            protected readonly RichTextBox CaptionTextBox;
+
+            protected override void OnShown(EventArgs e)
+            {
+                Rectangle workingArea = Screen.FromControl(this).WorkingArea;
+                int scale(int value) => (int)Math.Round(value * DeviceDpi / 96d);
+                string[] lines = CaptionTextBox.Lines.Length == 0 ? [string.Empty] : CaptionTextBox.Lines;
+                int textWidth = lines.Max(line => TextRenderer.MeasureText(
+                    line,
+                    CaptionTextBox.Font,
+                    Size.Empty,
+                    TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width);
+                int textHeight = Math.Max(lines.Length, 4) * CaptionTextBox.Font.Height;
+                int horizontalSpacing = scale(48) + SystemInformation.VerticalScrollBarWidth;
+                int verticalSpacing = scale(120);
+
+                int maximumWidth = Math.Max(MinimumSize.Width, (int)(workingArea.Width * 0.8));
+                int maximumHeight = Math.Max(MinimumSize.Height, (int)(workingArea.Height * 0.7));
+                Width = Math.Clamp(textWidth + horizontalSpacing, MinimumSize.Width, maximumWidth);
+                Height = Math.Clamp(textHeight + verticalSpacing, MinimumSize.Height, maximumHeight);
+                base.OnShown(e);
+            }
+
+            public TextDialog
+            (
+                string caption = EMPTY_STRING,
+                string title = EMPTY_STRING,
+                Font? font = null,
+                DialogResultFlags buttons = DialogResultFlags.OK
+            )
+            : base(string.Empty, title, font, buttons)
+            {
+                CaptionPanel.Controls.Remove(CaptionLabel);
+                CaptionLabel.Dispose();
+
+                CaptionPanel.AutoScroll = false;
+                CaptionPanel.AutoSize = false;
+
+                AutoSize = false;
+                FormBorderStyle = FormBorderStyle.Sizable;
+                MaximizeBox = true;
+                MinimumSize = new(480, 240);
+                SizeGripStyle = SizeGripStyle.Show;
+                MainTableLayoutPanel.ColumnStyles[0].SizeType = SizeType.Percent;
+                MainTableLayoutPanel.ColumnStyles[0].Width = 100F;
+                MainTableLayoutPanel.RowStyles[0].SizeType = SizeType.Percent;
+                MainTableLayoutPanel.RowStyles[0].Height = 100F;
+
+                CaptionTextBox = new()
+                {
+                    Name = "CaptionTextBox",
+                    BackColor = SystemColors.Control,
+                    BorderStyle = BorderStyle.None,
+                    DetectUrls = false,
+                    Dock = DockStyle.Fill,
+                    Font = Font,
+                    ReadOnly = true,
+                    ScrollBars = RichTextBoxScrollBars.ForcedVertical,
+                    TabStop = false,
+                    Text = caption
+                };
+                CaptionPanel.Controls.Add(CaptionTextBox);
+            }
+        }
+
         public class MessageCheckDialog : MessageDialog
         {
             protected readonly CheckBox CheckBox;
