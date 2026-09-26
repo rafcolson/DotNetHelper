@@ -29,6 +29,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="AdvSplitContainer.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Update="AdvTabControl.cs">
       <SubType>Component</SubType>
     </Compile>

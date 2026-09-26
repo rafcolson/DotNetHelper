@@ -190,12 +190,12 @@ namespace WinFormsLib
             private static void SetAcceptOrCancelButton(Button button, DialogResultFlag dialogResultFlag, Form form)
             {
                 DialogResultFlag acceptFlags = DialogResultFlag.OK | DialogResultFlag.Yes | DialogResultFlag.Retry | DialogResultFlag.Close;
-                DialogResultFlag cancelFlags = DialogResultFlag.Cancel | DialogResultFlag.No | DialogResultFlag.Abort;
+                DialogResultFlag cancelFlags = DialogResultFlag.Cancel | DialogResultFlag.No | DialogResultFlag.Abort | DialogResultFlag.Close;
                 if (acceptFlags.HasFlag(dialogResultFlag))
                 {
                     form.AcceptButton = button;
                 }
-                else if (cancelFlags.HasFlag(dialogResultFlag))
+                if (cancelFlags.HasFlag(dialogResultFlag))
                 {
                     form.CancelButton = button;
                 }

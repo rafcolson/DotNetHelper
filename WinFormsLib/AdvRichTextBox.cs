@@ -8,14 +8,22 @@ namespace WinFormsLib
     public sealed class RtfCharacterStyle(string name, Font font, Color color, float raise = 0)
     {
 
-        public string Name { get; private set; } = name;
-        public Font Font { get; private set; } = font;
-        public Color Color { get; private set; } = color;
-        public float Raise { get; private set; } = Math.Max(raise, 0);
+        public string Name { get; } = name;
+        public Font Font { get; } = font;
+        public Color Color { get; } = color;
+        public float Raise { get; } = Math.Max(raise, 0);
     }
 
     public partial class AdvRichTextBox : RichTextBox
     {
+
+        private string? preservedRtf;
+        private float preservedZoomFactor;
+        private string? dpiChangeRtf;
+        private bool dpiChangePending;
+        private float dpiChangeZoomFactor;
+        private int dpiChangeSelectionStart;
+        private int dpiChangeSelectionLength;
 
         [GeneratedRegex(@"\\f(\d+)")]
         private static partial Regex RtfFontIndexRegex();
@@ -24,31 +32,103 @@ namespace WinFormsLib
 
         public AdvRichTextBox()
         {
-
-            #endregion
-
-            #region ScrollToCaret
-
             ScrollToCaretTimer = new System.Windows.Forms.Timer();
-            InitSelectionAlignment();
-            InitInsertLink();
-            ScrollToCaretTimer.Tick += AllMouseLeaveTimer_Tick;
+            // Enable advanced RichEdit typography so paragraph justification is available.
+            _ = SendMessage(new HandleRef(this, Handle), EM_SETTYPOGRAPHYOPTIONS, TO_ADVANCEDTYPOGRAPHY, TO_ADVANCEDTYPOGRAPHY);
+            // Links are registered and handled explicitly by AppendLink and GetPlainLink.
+            base.DetectUrls = false;
+            ScrollToCaretTimer.Tick += ScrollToCaretTimer_Tick;
         }
-
-        private readonly System.Windows.Forms.Timer ScrollToCaretTimer;
 
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
                 ScrollToCaretTimer.Stop();
-                ScrollToCaretTimer.Tick -= AllMouseLeaveTimer_Tick;
+                ScrollToCaretTimer.Tick -= ScrollToCaretTimer_Tick;
                 ScrollToCaretTimer.Dispose();
             }
             base.Dispose(disposing);
         }
 
-        private void AllMouseLeaveTimer_Tick(object? sender, EventArgs e)
+        protected override void OnHandleDestroyed(EventArgs e)
+        {
+            if (RecreatingHandle && IsHandleCreated)
+            {
+                preservedRtf = Rtf;
+                preservedZoomFactor = ZoomFactor;
+            }
+            base.OnHandleDestroyed(e);
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            if (preservedRtf is not null)
+            {
+                Rtf = preservedRtf;
+                RestoreZoomFactor(preservedZoomFactor);
+                preservedRtf = null;
+            }
+        }
+
+        protected override void OnDpiChangedBeforeParent(EventArgs e)
+        {
+            dpiChangePending = IsHandleCreated;
+            if (dpiChangePending)
+            {
+                dpiChangeRtf = TextLength == 0 ? null : Rtf;
+                dpiChangeZoomFactor = ZoomFactor;
+                dpiChangeSelectionStart = SelectionStart;
+                dpiChangeSelectionLength = SelectionLength;
+            }
+            base.OnDpiChangedBeforeParent(e);
+        }
+
+        protected override void OnDpiChangedAfterParent(EventArgs e)
+        {
+            base.OnDpiChangedAfterParent(e);
+            if (dpiChangePending)
+            {
+                if (dpiChangeRtf is not null)
+                {
+                    Rtf = dpiChangeRtf;
+                }
+                RestoreZoomFactor(dpiChangeZoomFactor);
+                Select(dpiChangeSelectionStart, dpiChangeSelectionLength);
+                dpiChangeRtf = null;
+                dpiChangePending = false;
+            }
+        }
+
+        #endregion
+
+        #region Scrollbar dragging
+
+        private const int WM_HSCROLL = 0x0114;
+        private const int WM_VSCROLL = 0x0115;
+        private const int SB_THUMBPOSITION = 4;
+        private const int SB_THUMBTRACK = 5;
+
+        protected override void WndProc(ref Message m)
+        {
+            if ((m.Msg == WM_VSCROLL || m.Msg == WM_HSCROLL)
+                && (m.WParam.ToInt64() & 0xFFFF) == SB_THUMBTRACK)
+            {
+                // Apply each drag position immediately, also when Windows disables
+                // live scrolling while dragging the native scrollbar thumb.
+                m.WParam = (nint)((m.WParam.ToInt64() & ~0xFFFFL) | SB_THUMBPOSITION);
+            }
+            base.WndProc(ref m);
+        }
+
+        #endregion
+
+        #region ScrollToCaret
+
+        private readonly System.Windows.Forms.Timer ScrollToCaretTimer;
+
+        private void ScrollToCaretTimer_Tick(object? sender, EventArgs e)
         {
             ScrollToCaretTimer.Stop();
             base.ScrollToCaret();
@@ -73,11 +153,17 @@ namespace WinFormsLib
 
         public new void Clear()
         {
-            float f = ZoomFactor;
+            float zoomFactor = ZoomFactor;
             base.Clear();
             plainLinks.Clear();
             characterStyleRanges.Clear();
-            ZoomFactor *= f;
+            RestoreZoomFactor(zoomFactor);
+        }
+
+        public void RestoreZoomFactor(float zoomFactor)
+        {
+            _ = ZoomFactor; // Synchronize WinForms' cache with the native RichEdit zoom.
+            ZoomFactor = zoomFactor;
         }
 
         #endregion
@@ -89,9 +175,9 @@ namespace WinFormsLib
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Color HighlightBackColor { get; set; } = Color.Yellow;
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
-        public bool HighlightMatchCase { get; set; } = false;
+        public bool HighlightMatchCase { get; set; }
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
-        public bool HighlightPartialMatch { get; set; } = false;
+        public bool HighlightPartialMatch { get; set; }
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Utils.WordSearchOptions HighlightOptions { get; set; } = Utils.WordSearchOptions.AllWords;
 
@@ -110,7 +196,7 @@ namespace WinFormsLib
             SelectionStart = TextLength;
             SelectionLength = 0;
 
-            if (!(font == null))
+            if (font is not null)
             {
                 SelectionFont = font;
             }
@@ -123,7 +209,7 @@ namespace WinFormsLib
 
             int offset = default;
 
-            if (!(highlighted == null))
+            if (highlighted is not null)
             {
                 offset = SelectionStart;
             }
@@ -136,7 +222,7 @@ namespace WinFormsLib
                 AddCharacterStyleRange(start, text.Length, characterStyle);
             }
 
-            if (!(highlighted == null))
+            if (highlighted is not null)
             {
                 bool argmatchCase = HighlightMatchCase;
                 bool argpartialMatch = HighlightPartialMatch;
@@ -155,6 +241,7 @@ namespace WinFormsLib
 
             SelectionStart = TextLength;
             SelectionLength = 0;
+            ResetSelectionBackColor();
         }
 
         #endregion
@@ -187,6 +274,11 @@ namespace WinFormsLib
 
         public void EndUpdate()
         {
+            if (updating == 0)
+            {
+                throw new InvalidOperationException("EndUpdate must be preceded by BeginUpdate.");
+            }
+
             updating -= 1;
             if (updating > 0)
             {
@@ -260,11 +352,6 @@ namespace WinFormsLib
         [DllImport("user32.dll", EntryPoint = "SendMessageW")]
         private static extern nint SendMessagePointer(HandleRef hWnd, int msg, nint wParam, nint lParam);
 
-        private void InitSelectionAlignment()
-        {
-            _ = SendMessage(new HandleRef(this, Handle), EM_SETTYPOGRAPHYOPTIONS, TO_ADVANCEDTYPOGRAPHY, TO_ADVANCEDTYPOGRAPHY);
-        }
-
         #endregion
 
         #region InsertLink
@@ -300,6 +387,35 @@ namespace WinFormsLib
         private readonly List<PlainLink> plainLinks = [];
         private readonly List<CharacterStyleRange> characterStyleRanges = [];
 
+        public bool TryGetCharacterStyleRange(int index, out int start, out int length, out short style)
+        {
+            int lower = 0;
+            int upper = characterStyleRanges.Count - 1;
+            while (lower <= upper)
+            {
+                int middle = lower + ((upper - lower) / 2);
+                CharacterStyleRange range = characterStyleRanges[middle];
+                if (index < range.Start)
+                {
+                    upper = middle - 1;
+                }
+                else if (index >= range.Start + range.Length)
+                {
+                    lower = middle + 1;
+                }
+                else
+                {
+                    start = range.Start;
+                    length = range.Length;
+                    style = range.Style;
+                    return true;
+                }
+            }
+            start = length = 0;
+            style = 0;
+            return false;
+        }
+
         private void AddCharacterStyleRange(int start, int length, short style)
         {
             if (characterStyleRanges.Count != 0)
@@ -320,8 +436,10 @@ namespace WinFormsLib
         private const int EM_SETCHARFORMAT = WM_USER + 68;
         private const uint CFE_UNDERLINE = 4U;
         private const uint CFE_LINK = 32U;
+        private const uint CFE_AUTOBACKCOLOR = 0x04000000U;
         private const uint CFM_UNDERLINE = 4U;
         private const uint CFM_LINK = 32U;
+        private const uint CFM_BACKCOLOR = 0x04000000U;
 
         [System.ComponentModel.Browsable(false)]
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
@@ -361,11 +479,6 @@ namespace WinFormsLib
             public byte bAnimation;
             public byte bRevAuthor;
             public byte bReserved1;
-        }
-
-        private void InitInsertLink()
-        {
-            base.DetectUrls = false;
         }
 
         private void GetSelectionStyle(ref uint mask, ref uint effects)
@@ -408,9 +521,17 @@ namespace WinFormsLib
             }
         }
 
+        public void ResetSelectionBackColor()
+        {
+            SetSelectionStyle(CFM_BACKCOLOR, CFE_AUTOBACKCOLOR);
+        }
+
         public void AppendLink(string text, Font? font = null, Color? color = null, bool underlined = true, short characterStyle = 0)
         {
-            if (!(font == null))
+            SelectionStart = TextLength;
+            SelectionLength = 0;
+
+            if (font is not null)
             {
                 SelectionFont = font;
             }
@@ -443,6 +564,22 @@ namespace WinFormsLib
             }
             Select(position + length, 0);
             SetSelectionStyle(mask, effects);
+            ResetSelectionBackColor();
+        }
+
+        public void RemoveText(int position, int length)
+        {
+            bool readOnly = ReadOnly;
+            try
+            {
+                ReadOnly = false;
+                Select(position, length);
+                SelectedText = string.Empty;
+            }
+            finally
+            {
+                ReadOnly = readOnly;
+            }
         }
 
         public string? GetRtfWithCharacterStyles(IDictionary<short, RtfCharacterStyle> styles)
@@ -459,16 +596,26 @@ namespace WinFormsLib
             }
 
             const string markerPrefix = "BQRTFCHARSTYLE";
+            using RichTextBox temporary = new()
+            {
+                DetectUrls = false,
+                Rtf = Rtf
+            };
 
             foreach (CharacterStyleRange range in characterStyleRanges.Where(item => activeStyles.Any(style => style.Key.Equals(item.Style))).OrderByDescending(item => item.Start))
             {
-                Select(range.Start + range.Length, 0);
-                SelectedText = markerPrefix + "END" + GetAlphabeticMarkerSuffix(range.Style);
-                Select(range.Start, 0);
-                SelectedText = markerPrefix + "START" + GetAlphabeticMarkerSuffix(range.Style);
+                temporary.Select(range.Start, 1);
+                int characterOffset = temporary.SelectionCharOffset;
+                temporary.Select(range.Start + range.Length, 0);
+                temporary.SelectionCharOffset = characterOffset;
+                temporary.SelectedText = markerPrefix + "END" + GetAlphabeticMarkerSuffix(range.Style);
+                temporary.Select(range.Start, 0);
+                // Put the elevation before the opening marker, outside the style group.
+                temporary.SelectionCharOffset = characterOffset;
+                temporary.SelectedText = markerPrefix + "START" + GetAlphabeticMarkerSuffix(range.Style);
             }
 
-            string styledRtf = Rtf
+            string styledRtf = temporary.Rtf
                 ?? throw new InvalidOperationException("RichTextBox did not provide RTF content.");
             int fontTableStart = styledRtf.IndexOf(@"{\fonttbl", StringComparison.Ordinal);
             int fontTableEnd = FindRtfGroupEnd(styledRtf, fontTableStart);
@@ -504,7 +651,7 @@ namespace WinFormsLib
                 colorTableEnd = FindRtfGroupEnd(styledRtf, colorTableStart);
                 styledRtf = styledRtf.Insert(colorTableEnd, @"\red" + style.Value.Color.R + @"\green" + style.Value.Color.G + @"\blue" + style.Value.Color.B + ";");
 
-                _ = styleSheet.Append(@"{\*\cs").Append(style.Key).Append(@"\additive\f").Append(fontIndex).Append(@"\fs").Append((int)Math.Round(Math.Round((double)(style.Value.Font.SizeInPoints * 2.0f)))).Append(@"\cf").Append(colorIndex);
+                _ = styleSheet.Append(@"{\*\cs").Append(style.Key).Append(@"\additive\f").Append(fontIndex).Append(@"\fs").Append((int)Math.Round(style.Value.Font.SizeInPoints * 2.0f)).Append(@"\cf").Append(colorIndex);
                 if (style.Value.Font.Bold)
                 {
                     _ = styleSheet.Append(@"\b");
@@ -550,7 +697,7 @@ namespace WinFormsLib
                 string markerSuffix = GetAlphabeticMarkerSuffix(style.Key);
                 styledRtf = styledRtf
                     .Replace(markerPrefix + "START" + markerSuffix, @"{\cs" + style.Key + directStyleFormatting[style.Key] + " ")
-                    .Replace(markerPrefix + "END" + markerSuffix, @"}\up0 ");
+                    .Replace(markerPrefix + "END" + markerSuffix, "}");
             }
 
             colorTableStart = styledRtf.IndexOf(@"{\colortbl", StringComparison.Ordinal);

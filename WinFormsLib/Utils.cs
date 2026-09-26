@@ -100,6 +100,15 @@ namespace WinFormsLib
 
         public static readonly HashSet<char> CommonPunctuationMarks = [Chars.SPACE, Chars.PERIOD, Chars.COMMA, Chars.QUESTION_MARK, Chars.EXCLAMATION_MARK, Chars.COLON, Chars.SEMICOLON, Chars.HYPHEN, Chars.SINGLE_QUOTE, Chars.DOUBLE_QUOTE, Chars.LEFT_CURLY_SINGLE_QUOTE, Chars.RIGHT_CURLY_SINGLE_QUOTE, Chars.LEFT_CURLY_SINGLE_QUOTE_LOW, Chars.LEFT_CURLY_DOUBLE_QUOTE, Chars.RIGHT_CURLY_DOUBLE_QUOTE, Chars.LEFT_CURLY_DOUBLE_QUOTE_LOW, Chars.LEFT_ANGLE_SINGLE_QUOTE, Chars.RIGHT_ANGLE_SINGLE_QUOTE, Chars.LEFT_ANGLE_DOUBLE_QUOTE, Chars.RIGHT_ANGLE_DOUBLE_QUOTE, Chars.LEFT_SQUARE_BRACKET, Chars.RIGHT_SQUARE_BRACKET, Chars.LEFT_ROUND_BRACKET, Chars.RIGHT_ROUND_BRACKET, Chars.LEFT_CURLY_BRACE, Chars.RIGHT_CURLY_BRACE];
 
+        private static bool IsWordBoundary(char value)
+        {
+            UnicodeCategory category = char.GetUnicodeCategory(value);
+            return !char.IsLetterOrDigit(value)
+                && category is not UnicodeCategory.NonSpacingMark
+                && category is not UnicodeCategory.SpacingCombiningMark
+                && category is not UnicodeCategory.EnclosingMark;
+        }
+
         public static int[][] GetOccurrences(string phrase, string text, [Optional, DefaultParameterValue(false)] ref bool matchCase, [Optional, DefaultParameterValue(false)] ref bool partialMatch, [Optional, DefaultParameterValue(WordSearchOptions.AllWords)] ref WordSearchOptions options)
         {
             List<int[]> occurrences = [];
@@ -150,7 +159,7 @@ namespace WinFormsLib
 
                     if (j == m)
                     {
-                        if (partialMatch || CommonPunctuationMarks.Contains(c))
+                        if (partialMatch || IsWordBoundary(c))
                         {
                             occurrence.Add([o, i - o]);
                         }
@@ -165,7 +174,7 @@ namespace WinFormsLib
                         {
                             j += 1;
                         }
-                        else if (partialMatch || CommonPunctuationMarks.Contains(lastChar))
+                        else if (partialMatch || IsWordBoundary(lastChar))
                         {
                             o = i;
                             j += 1;
@@ -1006,7 +1015,7 @@ namespace WinFormsLib
         public static LinkLabel.Link[] GetLinkLabelLinks(string text, Dictionary<string, string>? textLinkPairs = null)
         {
             List<LinkLabel.Link> l = [];
-            textLinkPairs ??= GetUrls(text).ToDictionary(x => x);
+            textLinkPairs ??= GetUrls(text).Distinct().ToDictionary(x => x);
             foreach (KeyValuePair<string, string> kvp in textLinkPairs)
             {
                 int textIndex = text.IndexOf(kvp.Key);
