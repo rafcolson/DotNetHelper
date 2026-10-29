@@ -27,6 +27,61 @@ namespace WinFormsLib
         [DllImport("user32.dll")]
         private static extern IntPtr SendMessage(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam);
 
+        [ComImport]
+        [Guid("56FDF342-FD6D-11D0-958A-006097C9A090")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface ITaskbarList
+        {
+            void HrInit();
+            void AddTab(IntPtr windowHandle);
+            void DeleteTab(IntPtr windowHandle);
+        }
+
+        /// <summary>Adds an existing window to the Windows taskbar.</summary>
+        /// <remarks>
+        /// Call on the window's UI thread. Remove the entry with
+        /// <see cref="RemoveWindowFromTaskbar"/> before destroying the window handle.
+        /// </remarks>
+        /// <returns>Whether the taskbar entry was added successfully.</returns>
+        public static bool AddWindowToTaskbar(IntPtr windowHandle) => UpdateTaskbarWindow(windowHandle, add: true);
+
+        /// <summary>Removes a window's entry from the Windows taskbar.</summary>
+        /// <remarks>Call on the window's UI thread while the window handle is still valid.</remarks>
+        /// <returns>Whether the taskbar entry was removed successfully.</returns>
+        public static bool RemoveWindowFromTaskbar(IntPtr windowHandle) => UpdateTaskbarWindow(windowHandle, add: false);
+
+        private static bool UpdateTaskbarWindow(IntPtr windowHandle, bool add)
+        {
+            object? instance = null;
+            try
+            {
+                Type taskbarType = Type.GetTypeFromCLSID(new Guid("56FDF344-FD6D-11D0-958A-006097C9A090"))!;
+                instance = Activator.CreateInstance(taskbarType)!;
+                ITaskbarList taskbar = (ITaskbarList)instance;
+                taskbar.HrInit();
+                if (add)
+                {
+                    taskbar.AddTab(windowHandle);
+                }
+                else
+                {
+                    taskbar.DeleteTab(windowHandle);
+                }
+                return true;
+            }
+            catch (COMException)
+            {
+                return false;
+            }
+            finally
+            {
+                if (instance != null)
+                {
+                    Marshal.ReleaseComObject(instance);
+                }
+            }
+        }
+
         private static readonly ToolTip _toolTip = new()
         {
             AutoPopDelay = TOOLTIP_AUTO_POP_DELAY,
