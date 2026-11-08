@@ -356,18 +356,21 @@ namespace WinFormsLib
             protected readonly CheckBox CheckBox;
 
             [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-            public bool Checked { get; set; }
-
-            private void MessageCheckBox_CheckChanged(object? sender, EventArgs e) => Checked = CheckBox.Checked;
+            public bool Checked
+            {
+                get => CheckBox.Checked;
+                set => CheckBox.Checked = value;
+            }
 
             public MessageCheckDialog
             (
                 string checkText,
                 string caption = EMPTY_STRING,
                 string title = EMPTY_STRING,
-                Font? font = null
+                Font? font = null,
+                DialogResultFlags buttons = DialogResultFlags.YesNo
             )
-            : base(caption, title, font, DialogResultFlags.YesNo)
+            : base(caption, title, font, buttons)
             {
                 CheckBox = new()
                 {
@@ -378,9 +381,6 @@ namespace WinFormsLib
                     Text = checkText,
                     TabStop = false
                 };
-                CheckBox.CheckedChanged += MessageCheckBox_CheckChanged;
-                CheckBox.Disposed += (sender, e) => CheckBox.CheckedChanged -= MessageCheckBox_CheckChanged;
-
                 if (string.IsNullOrEmpty(caption))
                 {
                     MainTableLayoutPanel.Controls.Remove(CaptionPanel);

@@ -314,7 +314,7 @@ namespace WinFormsLib
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct PARAFORMAT
+        private unsafe struct PARAFORMAT
         {
             public int cbSize;
             public uint dwMask;
@@ -325,8 +325,7 @@ namespace WinFormsLib
             public int dxOffset;
             public short wAlignment;
             public short cTabCount;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
-            public int[] rgxTabs;
+            public fixed int rgxTabs[32];
             public int dySpaceBefore;
             public int dySpaceAfter;
             public int dyLineSpacing;
@@ -343,14 +342,30 @@ namespace WinFormsLib
             public short wBorders;
         }
 
-        [DllImport("user32", CharSet = CharSet.Auto)]
-        private static extern int SendMessage(HandleRef hWnd, int msg, int wParam, int lParam);
+        private static int SendMessage(HandleRef hWnd, int msg, int wParam, int lParam)
+        {
+            return unchecked((int)SendMessagePointer(hWnd, msg, wParam, lParam));
+        }
 
-        [DllImport("user32", CharSet = CharSet.Auto)]
-        private static extern int SendMessage(HandleRef hWnd, int msg, int wParam, ref PARAFORMAT lp);
+        private static nint SendMessage(HandleRef hWnd, int msg, int wParam, ref PARAFORMAT lp)
+        {
+            nint result = SendMessageNative(hWnd.Handle, msg, wParam, ref lp);
+            GC.KeepAlive(hWnd.Wrapper);
+            return result;
+        }
 
-        [DllImport("user32.dll", EntryPoint = "SendMessageW")]
-        private static extern nint SendMessagePointer(HandleRef hWnd, int msg, nint wParam, nint lParam);
+        private static nint SendMessagePointer(HandleRef hWnd, int msg, nint wParam, nint lParam)
+        {
+            nint result = SendMessageNative(hWnd.Handle, msg, wParam, lParam);
+            GC.KeepAlive(hWnd.Wrapper);
+            return result;
+        }
+
+        [LibraryImport("user32.dll", EntryPoint = "SendMessageW")]
+        private static partial nint SendMessageNative(nint hWnd, int msg, nint wParam, nint lParam);
+
+        [LibraryImport("user32.dll", EntryPoint = "SendMessageW")]
+        private static partial nint SendMessageNative(nint hWnd, int msg, nint wParam, ref PARAFORMAT lp);
 
         #endregion
 

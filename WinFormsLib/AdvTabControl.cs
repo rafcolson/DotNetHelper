@@ -7,14 +7,15 @@ namespace WinFormsLib
     /// TabControl with owner-drawn tabs and configurable colors.
     /// Provides the subset of TabControlEX behaviour used by BibleQuotes.
     /// </summary>
-    public class AdvTabControl : TabControl
+    public partial class AdvTabControl : TabControl
     {
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern nint SendMessage(nint hwnd, int message, nint wParam, nint lParam);
+        [System.Runtime.InteropServices.LibraryImport("user32.dll", EntryPoint = "SendMessageW")]
+        private static partial nint SendMessage(nint hwnd, int message, nint wParam, nint lParam);
 
-        [System.Runtime.InteropServices.DllImport("gdi32.dll")]
-        private static extern bool DeleteObject(nint handle);
+        [System.Runtime.InteropServices.LibraryImport("gdi32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static partial bool DeleteObject(nint handle);
 
         private const int WM_SETFONT = 0x30;
         private Color _backColor = SystemColors.Control;

@@ -267,7 +267,7 @@ namespace WinFormsLib
         }
     }
 
-    internal static class ShellImageFactory
+    internal static partial class ShellImageFactory
     {
         private const uint SHCNE_UPDATEITEM = 0x00002000;
         private const uint SHCNF_PATHW = 0x0005;
@@ -282,7 +282,19 @@ namespace WinFormsLib
             try
             {
                 Guid guid = typeof(IShellItemImageFactory).GUID;
-                SHCreateItemFromParsingName(path, IntPtr.Zero, ref guid, out imageFactory);
+                int result = SHCreateItemFromParsingName(path, IntPtr.Zero, ref guid, out IntPtr imageFactoryPointer);
+                try
+                {
+                    Marshal.ThrowExceptionForHR(result);
+                    imageFactory = (IShellItemImageFactory)Marshal.GetObjectForIUnknown(imageFactoryPointer);
+                }
+                finally
+                {
+                    if (imageFactoryPointer != IntPtr.Zero)
+                    {
+                        _ = Marshal.Release(imageFactoryPointer);
+                    }
+                }
                 _ = imageFactory.GetImage(new ShellSize(size, size), ShellItemImageFactoryOptions.ThumbnailOnly | ShellItemImageFactoryOptions.BiggerSizeOk, out bitmapHandle);
                 if (bitmapHandle == IntPtr.Zero)
                 {
@@ -307,23 +319,23 @@ namespace WinFormsLib
             }
         }
 
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
-        private static extern void SHCreateItemFromParsingName(
-            [MarshalAs(UnmanagedType.LPWStr)] string pszPath,
+        [LibraryImport("shell32.dll", StringMarshalling = StringMarshalling.Utf16)]
+        private static partial int SHCreateItemFromParsingName(
+            string pszPath,
             IntPtr pbc,
             ref Guid riid,
-            [MarshalAs(UnmanagedType.Interface)] out IShellItemImageFactory ppv);
+            out IntPtr ppv);
 
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-        private static extern void SHChangeNotify(
+        [LibraryImport("shell32.dll", StringMarshalling = StringMarshalling.Utf16)]
+        private static partial void SHChangeNotify(
             uint wEventId,
             uint uFlags,
-            [MarshalAs(UnmanagedType.LPWStr)] string dwItem1,
+            string dwItem1,
             IntPtr dwItem2);
 
-        [DllImport("gdi32.dll")]
+        [LibraryImport("gdi32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool DeleteObject(IntPtr hObject);
+        private static partial bool DeleteObject(IntPtr hObject);
     }
 
     [ComImport]
@@ -427,7 +439,7 @@ namespace WinFormsLib
         }
     }
 
-    internal static class ShellPropertyStore
+    internal static partial class ShellPropertyStore
     {
         public static ShellProperty<T> Create<T>(string path, string canonicalName, T defaultValue, GetPropertyStoreFlags flags = GetPropertyStoreFlags.Default)
         {
@@ -498,8 +510,19 @@ namespace WinFormsLib
         private static IPropertyStore GetPropertyStore(string path, GetPropertyStoreFlags flags)
         {
             Guid guid = typeof(IPropertyStore).GUID;
-            SHGetPropertyStoreFromParsingName(path, IntPtr.Zero, flags, ref guid, out IPropertyStore propertyStore);
-            return propertyStore;
+            int result = SHGetPropertyStoreFromParsingName(path, IntPtr.Zero, flags, ref guid, out IntPtr propertyStorePointer);
+            try
+            {
+                Marshal.ThrowExceptionForHR(result);
+                return (IPropertyStore)Marshal.GetObjectForIUnknown(propertyStorePointer);
+            }
+            finally
+            {
+                if (propertyStorePointer != IntPtr.Zero)
+                {
+                    _ = Marshal.Release(propertyStorePointer);
+                }
+            }
         }
 
         private static void Release(object? comObject)
@@ -510,21 +533,21 @@ namespace WinFormsLib
             }
         }
 
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
-        private static extern void SHGetPropertyStoreFromParsingName(
-            [MarshalAs(UnmanagedType.LPWStr)] string pszPath,
+        [LibraryImport("shell32.dll", StringMarshalling = StringMarshalling.Utf16)]
+        private static partial int SHGetPropertyStoreFromParsingName(
+            string pszPath,
             IntPtr pbc,
             GetPropertyStoreFlags flags,
             ref Guid riid,
-            [MarshalAs(UnmanagedType.Interface)] out IPropertyStore ppv);
+            out IntPtr ppv);
 
-        [DllImport("propsys.dll", CharSet = CharSet.Unicode)]
-        private static extern int PSGetPropertyKeyFromName(
-            [MarshalAs(UnmanagedType.LPWStr)] string pszName,
+        [LibraryImport("propsys.dll", StringMarshalling = StringMarshalling.Utf16)]
+        private static partial int PSGetPropertyKeyFromName(
+            string pszName,
             out PropertyKey pkey);
 
-        [DllImport("ole32.dll")]
-        private static extern int PropVariantClear(ref PropVariant pvar);
+        [LibraryImport("ole32.dll")]
+        private static partial int PropVariantClear(ref PropVariant pvar);
     }
 
     [Flags]

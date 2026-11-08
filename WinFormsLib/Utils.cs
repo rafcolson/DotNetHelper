@@ -18,14 +18,14 @@ namespace WinFormsLib
         private const int WM_CANCELMODE = 0x001F;
         private const int WM_THEMECHANGED = 0x031A;
 
-        [DllImport("dwmapi.dll")]
-        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int valueSize);
+        [LibraryImport("dwmapi.dll")]
+        private static partial int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int valueSize);
 
-        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
-        private static extern int SetWindowTheme(IntPtr hwnd, string? subAppName, string? subIdList);
+        [LibraryImport("uxtheme.dll", StringMarshalling = StringMarshalling.Utf16)]
+        private static partial int SetWindowTheme(IntPtr hwnd, string? subAppName, string? subIdList);
 
-        [DllImport("user32.dll")]
-        private static extern IntPtr SendMessage(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam);
+        [LibraryImport("user32.dll", EntryPoint = "SendMessageW")]
+        private static partial IntPtr SendMessage(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam);
 
         [ComImport]
         [Guid("56FDF342-FD6D-11D0-958A-006097C9A090")]
@@ -77,7 +77,7 @@ namespace WinFormsLib
             {
                 if (instance != null)
                 {
-                    Marshal.ReleaseComObject(instance);
+                    _ = Marshal.ReleaseComObject(instance);
                 }
             }
         }
@@ -316,8 +316,9 @@ namespace WinFormsLib
             public string Value { get; protected set; } = Globals.ResourceManager.GetString(name) is string s ? s : string.Empty;
         }
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern bool DestroyIcon(IntPtr handle);
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static partial bool DestroyIcon(IntPtr handle);
 
         private static void Timer_Tick(object? sender, EventArgs e)
         {

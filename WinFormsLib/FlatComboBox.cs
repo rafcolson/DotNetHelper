@@ -2,14 +2,15 @@ using System.Drawing.Drawing2D;
 
 namespace WinFormsLib
 {
-    public class FlatComboBox : ComboBox
+    public partial class FlatComboBox : ComboBox
     {
 
-        [System.Runtime.InteropServices.DllImport("uxtheme.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
-        private static extern int SetWindowTheme(nint hwnd, string pszSubAppName, string pszSubIdList);
+        [System.Runtime.InteropServices.LibraryImport("uxtheme.dll", StringMarshalling = System.Runtime.InteropServices.StringMarshalling.Utf16)]
+        private static partial int SetWindowTheme(nint hwnd, string pszSubAppName, string pszSubIdList);
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern bool ValidateRect(nint hwnd, nint rect);
+        [System.Runtime.InteropServices.LibraryImport("user32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static partial bool ValidateRect(nint hwnd, nint rect);
 
         private const int WM_PAINT = 0xF;
         private const int WM_ERASEBKGND = 0x14;

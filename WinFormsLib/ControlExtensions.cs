@@ -4,18 +4,18 @@ using System.Runtime.InteropServices;
 
 namespace WinFormsLib
 {
-    public static class ControlExtensions
+    public static partial class ControlExtensions
     {
         private const int WM_SETREDRAW = 11;
 
-        [DllImport("user32.dll")]
-        private static extern int SendMessage(IntPtr hWnd, int wMsg, bool wParam, int lParam);
+        [LibraryImport("user32.dll", EntryPoint = "SendMessageW")]
+        private static partial nint SendMessage(nint hWnd, int wMsg, nint wParam, nint lParam);
 
-        public static void SuspendDrawing(this Control super) => _ = SendMessage(super.Handle, WM_SETREDRAW, false, 0);
+        public static void SuspendDrawing(this Control super) => _ = SendMessage(super.Handle, WM_SETREDRAW, 0, 0);
 
         public static void ResumeDrawing(this Control super)
         {
-            _ = SendMessage(super.Handle, WM_SETREDRAW, true, 0);
+            _ = SendMessage(super.Handle, WM_SETREDRAW, 1, 0);
             super.Refresh();
         }
 

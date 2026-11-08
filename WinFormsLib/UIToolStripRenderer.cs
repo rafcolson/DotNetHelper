@@ -24,6 +24,16 @@ namespace WinFormsLib
             }
 
             float dpiScale = (e.Item.Owner?.DeviceDpi ?? 96) / 96F;
+            // Windows can supply different check-image sizes for context menus
+            // and menu-strip drop-downs. Keep the mark equally sized in both,
+            // preserving the left inset so a smaller rectangle cannot move
+            // the enlarged mark into the menu edge.
+            int markSize = (int)Math.Round(24F * dpiScale);
+            bounds = new Rectangle(
+                bounds.Left,
+                bounds.Top + ((bounds.Height - markSize) / 2),
+                markSize,
+                markSize);
             float lineWidth = Math.Max(1.5F, 1.75F * dpiScale);
             Color color = e.Item.Enabled
                 ? _colorTable.ColorScheme.ForeColor2
