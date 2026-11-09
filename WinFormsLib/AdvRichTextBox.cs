@@ -5,15 +5,25 @@ using System.Text.RegularExpressions;
 namespace WinFormsLib
 {
 
+    /// <summary>Defines a named character style for RTF export.</summary>
+    /// <param name="name">The style name.</param>
+    /// <param name="font">The font for the style.</param>
+    /// <param name="color">The text color for the style.</param>
+    /// <param name="raise">The baseline offset in points. Negative values are treated as zero.</param>
     public sealed class RtfCharacterStyle(string name, Font font, Color color, float raise = 0)
     {
 
+        /// <summary>Gets the style name.</summary>
         public string Name { get; } = name;
+        /// <summary>Gets the font supplied for the style.</summary>
         public Font Font { get; } = font;
+        /// <summary>Gets the text color for the style.</summary>
         public Color Color { get; } = color;
+        /// <summary>Gets the nonnegative baseline offset in points.</summary>
         public float Raise { get; } = Math.Max(raise, 0);
     }
 
+    /// <summary>Extends a rich text box with formatted appending, highlighting, link handling, and named RTF style export.</summary>
     public partial class AdvRichTextBox : RichTextBox
     {
 
@@ -30,6 +40,7 @@ namespace WinFormsLib
 
         #region Initialization
 
+        /// <summary>Initializes a rich text box with advanced typography and explicit link handling.</summary>
         public AdvRichTextBox()
         {
             ScrollToCaretTimer = new System.Windows.Forms.Timer();
@@ -40,6 +51,7 @@ namespace WinFormsLib
             ScrollToCaretTimer.Tick += ScrollToCaretTimer_Tick;
         }
 
+        /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -51,6 +63,7 @@ namespace WinFormsLib
             base.Dispose(disposing);
         }
 
+        /// <inheritdoc/>
         protected override void OnHandleDestroyed(EventArgs e)
         {
             if (RecreatingHandle && IsHandleCreated)
@@ -61,6 +74,7 @@ namespace WinFormsLib
             base.OnHandleDestroyed(e);
         }
 
+        /// <inheritdoc/>
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
@@ -72,6 +86,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         protected override void OnDpiChangedBeforeParent(EventArgs e)
         {
             dpiChangePending = IsHandleCreated;
@@ -85,6 +100,7 @@ namespace WinFormsLib
             base.OnDpiChangedBeforeParent(e);
         }
 
+        /// <inheritdoc/>
         protected override void OnDpiChangedAfterParent(EventArgs e)
         {
             base.OnDpiChangedAfterParent(e);
@@ -110,6 +126,7 @@ namespace WinFormsLib
         private const int SB_THUMBPOSITION = 4;
         private const int SB_THUMBTRACK = 5;
 
+        /// <inheritdoc/>
         protected override void WndProc(ref Message m)
         {
             if ((m.Msg == WM_VSCROLL || m.Msg == WM_HSCROLL)
@@ -134,6 +151,7 @@ namespace WinFormsLib
             base.ScrollToCaret();
         }
 
+        /// <summary>Scrolls to the caret immediately during a batch update, or schedules scrolling on the UI timer.</summary>
         public new void ScrollToCaret()
         {
             if (updating > 0)
@@ -151,6 +169,7 @@ namespace WinFormsLib
 
         #region Zoomfactor
 
+        /// <summary>Clears the text and tracked link and style ranges while preserving the zoom factor.</summary>
         public new void Clear()
         {
             float zoomFactor = ZoomFactor;
@@ -160,6 +179,8 @@ namespace WinFormsLib
             RestoreZoomFactor(zoomFactor);
         }
 
+        /// <summary>Synchronizes the current zoom with the native control and applies the supplied factor.</summary>
+        /// <param name="zoomFactor">The zoom factor to restore.</param>
         public void RestoreZoomFactor(float zoomFactor)
         {
             _ = ZoomFactor; // Synchronize WinForms' cache with the native RichEdit zoom.
@@ -170,25 +191,42 @@ namespace WinFormsLib
 
         #region Highlighting
 
+        /// <summary>Gets or sets the foreground color of highlighted matches.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Color HighlightForeColor { get; set; } = Color.Blue;
+        /// <summary>Gets or sets the background color of highlighted matches.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Color HighlightBackColor { get; set; } = Color.Yellow;
+        /// <summary>Gets or sets whether highlighting matches case.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public bool HighlightMatchCase { get; set; }
+        /// <summary>Gets or sets whether highlighting permits partial matches.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public bool HighlightPartialMatch { get; set; }
+        /// <summary>Gets or sets the word matching mode used for highlighting.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Utils.WordSearchOptions HighlightOptions { get; set; } = Utils.WordSearchOptions.AllWords;
 
+        /// <summary>Specifies paragraph alignment in the native RichEdit control.</summary>
         public enum TextAlignment
         {
+            /// <summary>Aligns text to the left.</summary>
             Left = 1,
+            /// <summary>Aligns text to the right.</summary>
             Right = 2,
+            /// <summary>Centers text.</summary>
             Center = 3,
+            /// <summary>Justifies text between both margins.</summary>
             Justify = 4
         }
 
+        /// <summary>Appends a text run and optionally formats or highlights it.</summary>
+        /// <param name="text">The text to append.</param>
+        /// <param name="font">The font to use, or null to keep the current formatting.</param>
+        /// <param name="color">The text color to use, or null to keep the current formatting.</param>
+        /// <param name="highlighted">The search text to highlight within the appended text, or null to skip highlighting.</param>
+        /// <param name="characterStyle">The style identifier to track, or zero to leave the run untracked.</param>
+        /// <param name="raise">The baseline offset in points. Negative values are treated as zero.</param>
         public void AppendText(string text, Font? font = null, Color? color = null, string? highlighted = null, short characterStyle = 0, float raise = 0)
         {
             // Highlighting temporarily selects matches in previously appended text. Always
@@ -260,6 +298,8 @@ namespace WinFormsLib
         private int updating = 0;
         private int oldEventMask = 0;
 
+        /// <summary>Starts a batch update that suppresses native redraw and notifications.</summary>
+        /// <remarks>Calls can be nested. Pair each call with <see cref="EndUpdate"/>.</remarks>
         public void BeginUpdate()
         {
             updating += 1;
@@ -272,6 +312,8 @@ namespace WinFormsLib
             _ = SendMessage(new HandleRef(this, Handle), WM_SETREDRAW, 0, 0);
         }
 
+        /// <summary>Ends a batch update, restoring native redraw and notifications after the outermost update.</summary>
+        /// <exception cref="InvalidOperationException">There is no matching batch update.</exception>
         public void EndUpdate()
         {
             if (updating == 0)
@@ -289,6 +331,7 @@ namespace WinFormsLib
             _ = SendMessage(new HandleRef(this, Handle), EM_SETEVENTMASK, 0, oldEventMask);
         }
 
+        /// <summary>Gets or sets the paragraph alignment of the current selection.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public new TextAlignment SelectionAlignment
         {
@@ -402,6 +445,12 @@ namespace WinFormsLib
         private readonly List<PlainLink> plainLinks = [];
         private readonly List<CharacterStyleRange> characterStyleRanges = [];
 
+        /// <summary>Finds the tracked character style range containing the supplied text index.</summary>
+        /// <param name="index">The zero-based character index.</param>
+        /// <param name="start">The zero-based start of the matching range, or zero if no range is found.</param>
+        /// <param name="length">The length of the matching range, or zero if no range is found.</param>
+        /// <param name="style">The matching style identifier, or zero if no range is found.</param>
+        /// <returns><see langword="true"/> if a tracked style range contains the index.</returns>
         public bool TryGetCharacterStyleRange(int index, out int start, out int length, out short style)
         {
             int lower = 0;
@@ -456,6 +505,7 @@ namespace WinFormsLib
         private const uint CFM_LINK = 32U;
         private const uint CFM_BACKCOLOR = 0x04000000U;
 
+        /// <summary>Gets or sets automatic native URL detection. It is disabled initially.</summary>
         [System.ComponentModel.Browsable(false)]
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public new bool DetectUrls
@@ -536,11 +586,18 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Restores the automatic background color for the selection.</summary>
         public void ResetSelectionBackColor()
         {
             SetSelectionStyle(CFM_BACKCOLOR, CFE_AUTOBACKCOLOR);
         }
 
+        /// <summary>Appends clickable text using native underlined or manually tracked link handling.</summary>
+        /// <param name="text">The text to append.</param>
+        /// <param name="font">The font to use, or null to keep the current formatting.</param>
+        /// <param name="color">The text color to use, or null to keep the current formatting.</param>
+        /// <param name="underlined">Whether to use native underlined link formatting.</param>
+        /// <param name="characterStyle">The style identifier to track, or zero to leave the run untracked.</param>
         public void AppendLink(string text, Font? font = null, Color? color = null, bool underlined = true, short characterStyle = 0)
         {
             SelectionStart = TextLength;
@@ -582,6 +639,10 @@ namespace WinFormsLib
             ResetSelectionBackColor();
         }
 
+        /// <summary>Removes a range of text while preserving the control's read-only setting.</summary>
+        /// <param name="position">The zero-based starting position of the text to remove.</param>
+        /// <param name="length">The number of characters to remove.</param>
+        /// <remarks>Tracked ranges after the deletion shift with the text. Intersecting style ranges shrink, and intersecting plain links are unregistered.</remarks>
         public void RemoveText(int position, int length)
         {
             bool readOnly = ReadOnly;
@@ -589,7 +650,14 @@ namespace WinFormsLib
             {
                 ReadOnly = false;
                 Select(position, length);
+                int removedStart = SelectionStart;
+                int previousTextLength = TextLength;
                 SelectedText = string.Empty;
+                int removedLength = previousTextLength - TextLength;
+                if (removedLength > 0)
+                {
+                    UpdateTrackedRangesAfterRemoval(removedStart, removedLength);
+                }
             }
             finally
             {
@@ -597,6 +665,49 @@ namespace WinFormsLib
             }
         }
 
+        private void UpdateTrackedRangesAfterRemoval(int removedStart, int removedLength)
+        {
+            int removedEnd = removedStart + removedLength;
+            for (int i = plainLinks.Count - 1; i >= 0; i--)
+            {
+                PlainLink link = plainLinks[i];
+                if (link.Start >= removedEnd)
+                {
+                    plainLinks[i] = new PlainLink(link.Start - removedLength, link.Length, link.Text);
+                }
+                else if (link.Start + link.Length > removedStart)
+                {
+                    plainLinks.RemoveAt(i);
+                }
+            }
+
+            for (int i = characterStyleRanges.Count - 1; i >= 0; i--)
+            {
+                CharacterStyleRange range = characterStyleRanges[i];
+                int rangeEnd = range.Start + range.Length;
+                if (range.Start >= removedEnd)
+                {
+                    characterStyleRanges[i] = new CharacterStyleRange(range.Start - removedLength, range.Length, range.Style);
+                }
+                else if (rangeEnd > removedStart)
+                {
+                    int overlap = Math.Min(rangeEnd, removedEnd) - Math.Max(range.Start, removedStart);
+                    int remainingLength = range.Length - overlap;
+                    if (remainingLength == 0)
+                    {
+                        characterStyleRanges.RemoveAt(i);
+                    }
+                    else
+                    {
+                        characterStyleRanges[i] = new CharacterStyleRange(Math.Min(range.Start, removedStart), remainingLength, range.Style);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Exports the current RTF with named style definitions for matching tracked ranges.</summary>
+        /// <param name="styles">The RTF style definitions keyed by tracked style identifier.</param>
+        /// <returns>The resulting RTF, or the original RTF if there are no matching styles.</returns>
         public string? GetRtfWithCharacterStyles(IDictionary<short, RtfCharacterStyle> styles)
         {
             if (styles.Count.Equals(0) || characterStyleRanges.Count.Equals(0))
@@ -772,6 +883,7 @@ namespace WinFormsLib
             return -1;
         }
 
+        /// <inheritdoc/>
         protected override void OnMouseClick(MouseEventArgs e)
         {
             base.OnMouseClick(e);

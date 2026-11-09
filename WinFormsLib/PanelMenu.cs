@@ -2,6 +2,7 @@ using static WinFormsLib.Constants;
 
 namespace WinFormsLib
 {
+    /// <summary>A button that opens a hierarchy of panels on its containing form.</summary>
     public class PanelMenu : Button
     {
 
@@ -16,16 +17,29 @@ namespace WinFormsLib
         private Color _buttonActiveBackColor;
         private readonly System.Windows.Forms.Timer AllMouseLeaveTimer;
 
+        /// <summary>Occurs after the pointer has left the menu and the leave delay expires.</summary>
         public event MenuMouseLeaveEventHandler? MenuMouseLeave;
 
+        /// <summary>Handles a delayed menu leave notification.</summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The event data.</param>
         public delegate void MenuMouseLeaveEventHandler(object? sender, EventArgs e);
+        /// <summary>Occurs when the pointer enters the menu.</summary>
         public event MenuMouseEnterEventHandler? MenuMouseEnter;
 
+        /// <summary>Handles a menu enter notification.</summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The event data.</param>
         public delegate void MenuMouseEnterEventHandler(object? sender, EventArgs e);
+        /// <summary>Occurs when a panel button receives a mouse click.</summary>
         public event PanelButtonClickEventHandler? PanelButtonClick;
 
+        /// <summary>Handles a mouse click on a panel button.</summary>
+        /// <param name="button">The panel button that was clicked.</param>
+        /// <param name="e">The event data.</param>
         public delegate void PanelButtonClickEventHandler(PanelButton button, MouseEventArgs e);
 
+        /// <summary>Gets a snapshot of the active panel names in opening order.</summary>
         public string[] PanelsActive
         {
             get
@@ -34,6 +48,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Gets or sets the maximum row count used when filling panels by columns.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public int RowCountMax
         {
@@ -44,6 +59,7 @@ namespace WinFormsLib
             }
         } = 10;
 
+        /// <summary>Gets or sets the maximum column count used when filling panels by rows.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public int ColumnCountMax
         {
@@ -54,6 +70,7 @@ namespace WinFormsLib
             }
         } = 10;
 
+        /// <summary>Gets or sets the logical size used for panel buttons at 96 DPI.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Size ButtonSize
         {
@@ -67,6 +84,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Gets or sets the mouse leave delay in milliseconds, with a minimum of one.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public int MouseLeaveDelay
         {
@@ -82,6 +100,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Gets or sets the foreground color assigned to active panel buttons.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Color ButtonActiveForeColor
         {
@@ -102,6 +121,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Gets or sets the background color assigned to active panel buttons.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Color ButtonActiveBackColor
         {
@@ -122,6 +142,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Gets or sets the panel definitions and rebuilds the menu when assigned.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Level[] Levels
         {
@@ -133,9 +154,13 @@ namespace WinFormsLib
             }
         } = [];
 
+        /// <summary>Gets or sets the font used when panel button appearance is applied.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Font ButtonFont { get; set; }
 
+        /// <summary>Updates the size and font of existing panel buttons and repositions open panels.</summary>
+        /// <param name="buttonSize">The button size at 96 DPI.</param>
+        /// <param name="buttonFont">The font for the panel buttons.</param>
         public void SetButtonAppearance(Size buttonSize, Font buttonFont)
         {
             ArgumentNullException.ThrowIfNull(buttonFont);
@@ -157,9 +182,11 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Gets or sets whether the menu uses collapsing behavior.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public bool UseCollapsing { get; set; } = false;
 
+        /// <summary>Gets or sets whether items fill columns first. Changing this value rebuilds the menu.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public bool FillByColumns
         {
@@ -174,37 +201,60 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Gets or sets the panel names used when reopening the last selection.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public string[] LastSelection { get; set; } = [];
 
+        /// <summary>Gets or sets the horizontal alignment of the menu panels.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Align Alignment { get; set; } = Align.Left;
 
+        /// <summary>Specifies a horizontal panel alignment.</summary>
         public enum Align : int
         {
+            /// <summary>Aligns panels to the left.</summary>
             Left = 0,
+            /// <summary>Aligns panels to the right.</summary>
             Right = 1
         }
 
+        /// <summary>Defines an item in a menu level.</summary>
+        /// <param name="name">The identifier.</param>
+        /// <param name="text">The text to display.</param>
+        /// <param name="child">The identifier of the child panel, if any.</param>
+        /// <param name="enabled">Whether the item is enabled.</param>
         public class Item(string? name = null, string? text = null, string? child = null, bool enabled = true)
         {
+            /// <summary>Gets or sets the identifier.</summary>
             public string Name { get; set; } = string.IsNullOrEmpty(name) ? string.Empty : name;
+            /// <summary>Gets or sets the text displayed on the item.</summary>
             public string Text { get; set; } = string.IsNullOrEmpty(text) ? string.Empty : text;
+            /// <summary>Gets or sets the identifier of the child panel.</summary>
             public string Target { get; set; } = string.IsNullOrEmpty(child) ? string.Empty : child;
+            /// <summary>Gets or sets whether the item is enabled.</summary>
             public bool Enabled { get; set; } = enabled;
         }
 
+        /// <summary>Defines a panel and the items it contains.</summary>
+        /// <param name="name">The identifier.</param>
+        /// <param name="parent">The identifier of the parent panel, if any.</param>
+        /// <param name="items">The items to display.</param>
         public class Level(string? name = null, string? parent = null, PanelMenu.Item[]? items = null)
         {
+            /// <summary>Gets or sets the parent panel identifier.</summary>
             public string Parent { get; set; } = string.IsNullOrEmpty(parent) ? string.Empty : parent;
+            /// <summary>Gets or sets the identifier.</summary>
             public string Name { get; set; } = string.IsNullOrEmpty(name) ? string.Empty : name;
+            /// <summary>Gets or sets the items displayed in the panel.</summary>
             public Item[] Items { get; set; } = items ?? [];
 
+            /// <summary>Initializes an empty panel definition.</summary>
             public Level() : this(null, null, null)
             {
             }
         }
 
+        /// <summary>Represents a button inside a menu panel.</summary>
         public class PanelButton : Button
         {
 
@@ -221,6 +271,11 @@ namespace WinFormsLib
 
             private PanelMenu Root { get; set; }
 
+            /// <summary>Initializes a button for the specified panel.</summary>
+            /// <param name="parentPanel">The panel containing the button.</param>
+            /// <param name="name">The identifier.</param>
+            /// <param name="text">The text to display.</param>
+            /// <param name="panelName">The panel identifier.</param>
             public PanelButton(Panel parentPanel, string name, string text, string panelName) : base()
             {
                 FlatStyle = FlatStyle.Flat;
@@ -249,6 +304,8 @@ namespace WinFormsLib
                 Font = Root.ButtonFont;
             }
 
+            /// <summary>Applies the active or inactive colors to the button.</summary>
+            /// <param name="isActive">Whether to apply the active colors.</param>
             public void Active(bool isActive)
             {
                 if (isActive)
@@ -275,6 +332,7 @@ namespace WinFormsLib
 
         }
 
+        /// <summary>Represents a menu panel containing buttons in a table layout.</summary>
         public class Panel : TableLayoutPanel
         {
 
@@ -413,6 +471,7 @@ namespace WinFormsLib
 
         }
 
+        /// <summary>Initializes a menu button.</summary>
         public PanelMenu()
         {
             _buttonActiveForeColor = ForeColor;
@@ -428,6 +487,7 @@ namespace WinFormsLib
             AllMouseLeaveTimer.Tick += AllMouseLeaveTimer_Tick;
         }
 
+        /// <inheritdoc/>
         protected override void CreateHandle()
         {
             base.CreateHandle();
@@ -484,6 +544,7 @@ namespace WinFormsLib
             menuEventArgs = null;
         }
 
+        /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -590,6 +651,11 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Opens the specified panel on the containing form.</summary>
+        /// <param name="panelName">The panel identifier, or null or empty to use the first panel.</param>
+        /// <remarks>Opening an already active panel has no effect.</remarks>
+        /// <exception cref="InvalidOperationException">The menu has no containing form, has no default panel, or the parent button cannot be found.</exception>
+        /// <exception cref="KeyNotFoundException">The specified panel does not exist.</exception>
         public void Open(string? panelName = null)
         {
             Form ownerForm = form ?? FindForm()
@@ -599,6 +665,11 @@ namespace WinFormsLib
             {
                 panelName = panels.First().Key;
             }
+            if (_panelsActive.Contains(panelName))
+            {
+                return;
+            }
+
             Panel panel = panels[panelName];
             if (panel.ParentPanel is Panel parentPanel)
             {
@@ -619,6 +690,7 @@ namespace WinFormsLib
             _panelsActive.Add(panelName);
         }
 
+        /// <summary>Reopens known panels from the last selection, or opens the first panel if the selection is empty.</summary>
         public void OpenLast()
         {
             if (LastSelection.Length != 0)
@@ -637,6 +709,10 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Closes the specified panel and its active descendants.</summary>
+        /// <param name="panelName">The panel identifier, or null or empty to use the first panel.</param>
+        /// <exception cref="InvalidOperationException">No panel is available when the default panel is requested.</exception>
+        /// <exception cref="KeyNotFoundException">The specified panel does not exist.</exception>
         public void Close(string? panelName = null)
         {
             if (string.IsNullOrEmpty(panelName))
@@ -657,6 +733,8 @@ namespace WinFormsLib
             _ = _panelsActive.Remove(panelName);
         }
 
+        /// <summary>Determines whether the specified panel is open.</summary>
+        /// <param name="panelName">The panel identifier, or null or empty to use the first panel.</param>
         public bool Opened(string? panelName = null)
         {
             if (panels.Count != 0)

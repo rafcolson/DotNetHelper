@@ -1,11 +1,19 @@
 ﻿namespace WinFormsLib
 {
+    /// <summary>Represents a color using hue, saturation, and value components.</summary>
+    /// <param name="hue">The hue in degrees, normalized to the range from 0 inclusive to 360 exclusive.</param>
+    /// <param name="saturation">The saturation, clamped to the range from 0 to 1.</param>
+    /// <param name="value">The value, clamped to the range from 0 to 1.</param>
     public class HSVColor(double hue, double saturation, double value)
     {
+        /// <summary>Gets or sets the hue in degrees.</summary>
         public double Hue { get; set; } = ((hue % 360d) + 360d) % 360d;
+        /// <summary>Gets or sets the saturation component.</summary>
         public double Saturation { get; set; } = Math.Clamp(saturation, 0d, 1d);
+        /// <summary>Gets or sets the value component.</summary>
         public double Value { get; set; } = Math.Clamp(value, 0d, 1d);
 
+        /// <summary>Normalizes the hue, clamps saturation and value to the range from 0 to 1, and returns an opaque RGB color.</summary>
         public Color ToColor()
         {
             double hue = ((Hue % 360d) + 360d) % 360d;

@@ -6,10 +6,13 @@ using static WinFormsLib.Utils;
 
 namespace WinFormsLib
 {
+    /// <summary>Provides reusable Windows Forms dialogs and editing menus.</summary>
     public static class Forms
     {
+        /// <summary>Displays editing commands for a text box.</summary>
         public class EditTextContextMenuStrip : ContextMenuStrip
         {
+            /// <inheritdoc/>
             protected override void Dispose(bool disposing)
             {
                 ToolStripMenuItem[] items = [.. Items.Cast<ToolStripMenuItem>()];
@@ -50,6 +53,9 @@ namespace WinFormsLib
                 }
             }
 
+            /// <summary>Initializes the editing menu with the supplied settings.</summary>
+            /// <param name="font">The font to use, or null to use the library default.</param>
+            /// <param name="editMenuItems">The editing commands to include.</param>
             public EditTextContextMenuStrip
             (
                 Font? font = null,
@@ -70,13 +76,19 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Displays a message with optional links and configurable dialog buttons.</summary>
         public class MessageDialog : Form
         {
+            /// <summary>The link label that displays the caption.</summary>
             protected readonly LinkLabel CaptionLabel = new();
+            /// <summary>The scrollable container for the caption.</summary>
             protected readonly Panel CaptionPanel = new();
+            /// <summary>The container for the dialog result buttons.</summary>
             protected readonly FlowLayoutPanel DialogFlowLayoutPanel = new();
+            /// <summary>The dialog's main layout container.</summary>
             protected readonly TableLayoutPanel MainTableLayoutPanel = new();
 
+            /// <inheritdoc/>
             protected override void OnShown(EventArgs e)
             {
                 base.OnShown(e);
@@ -84,12 +96,14 @@ namespace WinFormsLib
                 this.CenterOnScreen();
             }
 
+            /// <inheritdoc/>
             protected override void OnDpiChanged(DpiChangedEventArgs e)
             {
                 base.OnDpiChanged(e);
                 UpdateDialogLayout();
             }
 
+            /// <inheritdoc/>
             protected override void Dispose(bool disposing)
             {
                 this.Clear();
@@ -265,6 +279,11 @@ namespace WinFormsLib
                 PerformLayout();
             }
 
+            /// <summary>Initializes the dialog with the supplied settings.</summary>
+            /// <param name="caption">The text displayed in the dialog.</param>
+            /// <param name="title">The dialog title.</param>
+            /// <param name="font">The font to use, or null to use the library default.</param>
+            /// <param name="buttons">The group of dialog result buttons.</param>
             public MessageDialog
             (
                 string caption = EMPTY_STRING,
@@ -284,10 +303,13 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Displays text in a scrollable text box.</summary>
         public class TextDialog : MessageDialog
         {
+            /// <summary>The text box used to display the caption.</summary>
             protected readonly RichTextBox CaptionTextBox;
 
+            /// <inheritdoc/>
             protected override void OnShown(EventArgs e)
             {
                 Rectangle workingArea = Screen.FromControl(this).WorkingArea;
@@ -309,6 +331,11 @@ namespace WinFormsLib
                 base.OnShown(e);
             }
 
+            /// <summary>Initializes the dialog with the supplied settings.</summary>
+            /// <param name="caption">The text displayed in the dialog.</param>
+            /// <param name="title">The dialog title.</param>
+            /// <param name="font">The font to use, or null to use the library default.</param>
+            /// <param name="buttons">The group of dialog result buttons.</param>
             public TextDialog
             (
                 string caption = EMPTY_STRING,
@@ -351,10 +378,13 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Displays a message and a checkbox.</summary>
         public class MessageCheckDialog : MessageDialog
         {
+            /// <summary>The checkbox displayed by the dialog.</summary>
             protected readonly CheckBox CheckBox;
 
+            /// <summary>Gets or sets the checkbox state.</summary>
             [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public bool Checked
             {
@@ -362,6 +392,12 @@ namespace WinFormsLib
                 set => CheckBox.Checked = value;
             }
 
+            /// <summary>Initializes the dialog with the supplied settings.</summary>
+            /// <param name="checkText">The label displayed next to the checkbox.</param>
+            /// <param name="caption">The text displayed in the dialog.</param>
+            /// <param name="title">The dialog title.</param>
+            /// <param name="font">The font to use, or null to use the library default.</param>
+            /// <param name="buttons">The group of dialog result buttons.</param>
             public MessageCheckDialog
             (
                 string checkText,
@@ -390,10 +426,18 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Displays an image with an optional caption.</summary>
         public class ImageDialog : MessageDialog
         {
+            /// <summary>The picture box that displays the image.</summary>
             protected readonly PictureBox PictureBox;
 
+            /// <summary>Initializes the dialog with the supplied settings.</summary>
+            /// <param name="image">The image to display.</param>
+            /// <param name="caption">The text displayed in the dialog.</param>
+            /// <param name="title">The dialog title.</param>
+            /// <param name="font">The font to use, or null to use the library default.</param>
+            /// <param name="buttons">The group of dialog result buttons.</param>
             public ImageDialog
             (
                 Image image,
@@ -422,16 +466,22 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Displays a grid of selectable images.</summary>
         public class ImageTableDialog : MessageDialog
         {
+            /// <summary>The container for the selectable images.</summary>
             protected readonly TableLayoutPanel ImageTableLayoutPanel;
 
             private readonly List<Point> _imagePositions = [];
 
+            /// <summary>Gets the zero-based index of the selected image, or -1 when nothing is selected.</summary>
             public int SelectedIndex { get; private set; }
+            /// <summary>Gets or sets the image grid's caption.</summary>
             [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public string CaptionText { get => CaptionLabel.Text; set => CaptionLabel.Text = value; }
 
+            /// <summary>Gets or sets an optional callback invoked after an image is selected.</summary>
+            /// <remarks>The returned task is not awaited by the dialog.</remarks>
             [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public Func<Task>? OnSelectedIndexChanged { get; set; } = null;
 
@@ -456,6 +506,14 @@ namespace WinFormsLib
                 }
             }
 
+            /// <summary>Initializes the dialog with the supplied settings.</summary>
+            /// <param name="images">The images to display in the grid.</param>
+            /// <param name="preferredSize">The preferred size used to calculate the image cell dimensions.</param>
+            /// <param name="selectedIndex">The initial zero-based selection index, or -1 for no selection.</param>
+            /// <param name="caption">The text displayed in the dialog.</param>
+            /// <param name="title">The dialog title.</param>
+            /// <param name="font">The font to use, or null to use the library default.</param>
+            /// <param name="buttons">The group of dialog result buttons.</param>
             public ImageTableDialog
             (
                 Image[] images,
@@ -529,15 +587,25 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Displays a drop-down list for choosing an item.</summary>
         public class DropDownListDialog : MessageDialog
         {
+            /// <summary>The combo box that displays the choices.</summary>
             protected readonly ComboBox DropDownList;
 
+            /// <summary>Gets or sets the zero-based index of the selected item, or -1 when nothing is selected.</summary>
             [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public int SelectedIndex { get => DropDownList.SelectedIndex; set => DropDownList.SelectedIndex = value; }
+            /// <summary>Gets or sets the selected item.</summary>
             [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public object? SelectedItem { get => DropDownList.SelectedItem; set => DropDownList.SelectedItem = value; }
 
+            /// <summary>Initializes the dialog with the supplied settings.</summary>
+            /// <param name="items">The items displayed by the dialog.</param>
+            /// <param name="selectedIndex">The initial zero-based selection index, or -1 for no selection.</param>
+            /// <param name="caption">The text displayed in the dialog.</param>
+            /// <param name="title">The dialog title.</param>
+            /// <param name="font">The font to use, or null to use the library default.</param>
             public DropDownListDialog
             (
                 object[] items,
@@ -569,12 +637,16 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Edits named text values and writes them back to the supplied map on confirmation.</summary>
         public class InputDialog : MessageDialog
         {
+            /// <summary>The container for the input labels and text boxes.</summary>
             protected readonly TableLayoutPanel InputTableLayoutPanel;
 
+            /// <summary>The map that receives the entered text on confirmation.</summary>
             protected readonly Map<string, object?> _input;
 
+            /// <inheritdoc/>
             protected override void OnFormClosed(FormClosedEventArgs e)
             {
                 if (AcceptButton != null && DialogResult == AcceptButton.DialogResult)
@@ -603,9 +675,16 @@ namespace WinFormsLib
                 }
             }
 
+            /// <summary>Gets or sets an optional callback invoked after the entered values are written back.</summary>
+            /// <remarks>The returned task is not awaited by the dialog.</remarks>
             [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public Func<Task>? OnUpdate { get; set; } = null;
 
+            /// <summary>Initializes the dialog with the supplied settings.</summary>
+            /// <param name="input">The map whose entries are displayed and updated on confirmation.</param>
+            /// <param name="caption">The text displayed in the dialog.</param>
+            /// <param name="title">The dialog title.</param>
+            /// <param name="font">The font to use, or null to use the library default.</param>
             public InputDialog
             (
                 ref Map<string, object?> input,
@@ -683,14 +762,19 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Edits a list and writes the edited items back on confirmation.</summary>
         public class EditListDialog : MessageDialog
         {
+            /// <summary>The container for the list and its editing buttons.</summary>
             protected readonly TableLayoutPanel EditTableLayoutPanel;
+            /// <summary>The container for the editing buttons.</summary>
             protected readonly FlowLayoutPanel EditFlowLayoutPanel;
+            /// <summary>The list box that displays the items being edited.</summary>
             protected readonly ListBox EditListBox;
 
             private readonly List<object> _items;
 
+            /// <inheritdoc/>
             protected override void OnShown(EventArgs e)
             {
                 Items.Clear();
@@ -706,6 +790,7 @@ namespace WinFormsLib
                 base.OnShown(e);
             }
 
+            /// <inheritdoc/>
             protected override void OnFormClosed(FormClosedEventArgs e)
             {
                 if (AcceptButton != null && DialogResult == AcceptButton.DialogResult)
@@ -841,18 +926,24 @@ namespace WinFormsLib
                 EditListBox.SelectedIndex = i;
             }
 
+            /// <summary>Gets or sets an optional callback that replaces the default add action.</summary>
             [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public Func<Task>? OnAddItem { get; set; } = null;
+            /// <summary>Gets or sets an optional callback that replaces the default rename action.</summary>
             [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public Func<Task>? OnRenameItem { get; set; } = null;
+            /// <summary>Gets or sets the optional callback for editing an item.</summary>
             [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public Func<Task>? OnEditItem { get; set; } = null;
 
+            /// <summary>Gets the live collection of items being edited.</summary>
             public ListBox.ObjectCollection Items => EditListBox.Items;
 
+            /// <summary>Gets or sets the zero-based index of the selected item, or -1 when nothing is selected.</summary>
             [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public int SelectedIndex { get => EditListBox.SelectedIndex; set => EditListBox.SelectedIndex = value; }
 
+            /// <summary>Gets or sets the selected item.</summary>
             [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public object? SelectedItem
             {
@@ -860,6 +951,12 @@ namespace WinFormsLib
                 set { if (value is object o && Items.Count != 0) { EditListBox.SelectedItem = o; } }
             }
 
+            /// <summary>Initializes the dialog with the supplied settings.</summary>
+            /// <param name="items">The list that receives the edited items on confirmation.</param>
+            /// <param name="caption">The text displayed in the dialog.</param>
+            /// <param name="title">The dialog title.</param>
+            /// <param name="font">The font to use, or null to use the library default.</param>
+            /// <param name="editButtons">The editing buttons to include.</param>
             public EditListDialog
             (
                 ref List<object> items,
@@ -959,36 +1056,81 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Displays a countdown and invokes an action when the countdown reaches zero.</summary>
         public class DelayedActionDialog : MessageDialog
         {
+            /// <summary>The label that displays the remaining time.</summary>
             protected readonly Label TimerLabel;
 
+            /// <summary>The Windows Forms timer that advances the countdown.</summary>
             protected readonly System.Windows.Forms.Timer _timer;
+            /// <summary>The action invoked when the countdown expires.</summary>
             protected readonly Action? _action;
+            /// <summary>The number of seconds remaining in the countdown.</summary>
             protected int _numSeconds;
+
+            /// <inheritdoc/>
+            protected override void OnShown(EventArgs e)
+            {
+                base.OnShown(e);
+                if (IsDisposed || !Visible || DialogResult != DialogResult.None)
+                {
+                    return;
+                }
+
+                if (_numSeconds == 0)
+                {
+                    CompleteCountdown();
+                }
+                else
+                {
+                    _timer.Start();
+                }
+            }
 
             private void Timer_Tick(object? sender, EventArgs e)
             {
                 _numSeconds--;
                 if (_numSeconds == 0)
                 {
-                    Close();
-                    _action?.Invoke();
+                    CompleteCountdown();
                     return;
                 }
                 TimerLabel.Text = $"{_numSeconds}";
             }
-            private void DelayedActionDialog_FormClosing(object? sender, CancelEventArgs e)
+
+            private void CompleteCountdown()
             {
                 _timer.Stop();
-                _timer.Tick -= Timer_Tick;
-                _timer.Dispose();
-                if (sender is DelayedActionDialog dad)
-                {
-                    dad.ClearEventHandlers();
-                }
+                Close();
+                _action?.Invoke();
             }
 
+            /// <inheritdoc/>
+            protected override void OnFormClosed(FormClosedEventArgs e)
+            {
+                _timer.Stop();
+                base.OnFormClosed(e);
+            }
+
+            /// <inheritdoc/>
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    _timer.Dispose();
+                }
+                base.Dispose(disposing);
+            }
+
+            /// <summary>Initializes the dialog with the supplied settings.</summary>
+            /// <param name="action">The action to invoke when the countdown expires.</param>
+            /// <param name="delaySeconds">The initial countdown in seconds. Zero invokes the action as soon as the dialog is shown.</param>
+            /// <param name="caption">The text displayed in the dialog.</param>
+            /// <param name="title">The dialog title.</param>
+            /// <param name="font">The font to use, or null to use the library default.</param>
+            /// <remarks>The countdown starts when the dialog is shown.</remarks>
+            /// <exception cref="ArgumentOutOfRangeException"><paramref name="delaySeconds"/> is negative.</exception>
             public DelayedActionDialog
             (
                 Action? action = null,
@@ -999,6 +1141,7 @@ namespace WinFormsLib
             )
             : base(caption, title, font, DialogResultFlags.OKCancel)
             {
+                ArgumentOutOfRangeException.ThrowIfNegative(delaySeconds);
                 if (string.IsNullOrEmpty(caption))
                 {
                     MainTableLayoutPanel.Controls.Remove(CaptionPanel);
@@ -1016,10 +1159,9 @@ namespace WinFormsLib
                     TabStop = false
                 };
                 MainTableLayoutPanel.Controls.Add(TimerLabel, 0, 1);
-                FormClosing += DelayedActionDialog_FormClosing;
                 _numSeconds = delaySeconds;
                 _action = action;
-                _timer = new() { Interval = 1000, Enabled = true };
+                _timer = new() { Interval = 1000 };
                 _timer.Tick += Timer_Tick;
             }
         }

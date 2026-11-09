@@ -3,6 +3,9 @@ using System.Runtime.InteropServices;
 namespace WinFormsLib
 {
 
+    /// <summary>Supplies WinForms tool strip and menu colors from a color scheme.</summary>
+    /// <param name="uiClrSchm">The scheme used to render the controls.</param>
+    /// <param name="useGradientColors">Whether to use distinct gradient stops where supported.</param>
     public class UIColorTable(UIColorScheme uiClrSchm, bool useGradientColors = false) : ProfessionalColorTable
     {
         private static string[] GetKnownColorNames()
@@ -18,16 +21,25 @@ namespace WinFormsLib
             return [.. colorNames];
         }
 
+        /// <summary>Creates a tool strip color table from base colors and contrast settings.</summary>
+        /// <param name="foreColor">The base foreground color.</param>
+        /// <param name="backColor">The base background color.</param>
+        /// <param name="contrast">The multiplier used to derive color variants.</param>
+        /// <param name="useGradientColors">Whether to use distinct gradient stops where supported.</param>
         public UIColorTable(ref Color foreColor, ref Color backColor, [Optional, DefaultParameterValue(0.5d)] ref double contrast, [Optional, DefaultParameterValue(false)] ref bool useGradientColors) : this(new UIColorScheme(foreColor, backColor, contrast), useGradientColors)
         {
         }
 
+        /// <summary>Gets the shared array of known color names, excluding Transparent.</summary>
         public static string[] KnownColorNames { get; } = GetKnownColorNames();
 
+        /// <summary>Gets the color scheme used by this table.</summary>
         public UIColorScheme ColorScheme { get; } = uiClrSchm;
 
+        /// <summary>Gets or sets whether configurable gradient stops use different shades from the scheme.</summary>
         public bool UseGradient { get; set; } = useGradientColors;
 
+        /// <inheritdoc/>
         public override Color ToolStripDropDownBackground
         {
             get
@@ -36,6 +48,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color CheckBackground
         {
             get
@@ -44,6 +57,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color CheckPressedBackground
         {
             get
@@ -52,6 +66,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color CheckSelectedBackground
         {
             get
@@ -60,6 +75,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color MenuItemSelected
         {
             get
@@ -68,6 +84,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color GripDark
         {
             get
@@ -76,6 +93,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color GripLight
         {
             get
@@ -84,6 +102,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color SeparatorDark
         {
             get
@@ -92,6 +111,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color SeparatorLight
         {
             get
@@ -100,6 +120,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ToolStripBorder
         {
             get
@@ -108,6 +129,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color MenuBorder
         {
             get
@@ -116,6 +138,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color MenuItemBorder
         {
             get
@@ -124,6 +147,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ButtonPressedBorder
         {
             get
@@ -132,6 +156,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ButtonSelectedBorder
         {
             get
@@ -140,6 +165,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ButtonCheckedGradientEnd
         {
             get
@@ -148,6 +174,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ButtonCheckedGradientBegin
         {
             get
@@ -156,6 +183,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ButtonCheckedGradientMiddle
         {
             get
@@ -164,6 +192,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ButtonPressedGradientEnd
         {
             get
@@ -172,6 +201,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ButtonPressedGradientBegin
         {
             get
@@ -180,6 +210,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ButtonPressedGradientMiddle
         {
             get
@@ -188,6 +219,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ButtonSelectedGradientEnd
         {
             get
@@ -196,6 +228,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ButtonSelectedGradientBegin
         {
             get
@@ -204,6 +237,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ButtonSelectedGradientMiddle
         {
             get
@@ -212,6 +246,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ImageMarginGradientEnd
         {
             get
@@ -220,6 +255,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ImageMarginGradientBegin
         {
             get
@@ -228,6 +264,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ImageMarginGradientMiddle
         {
             get
@@ -236,14 +273,17 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
+        /// <remarks>Uses the base foreground color for gradients and the base background color for a flat fill.</remarks>
         public override Color ImageMarginRevealedGradientEnd
         {
             get
             {
-                return ColorScheme.ForeColor2;
+                return !UseGradient ? ColorScheme.BackColor2 : ColorScheme.ForeColor2;
             }
         }
 
+        /// <inheritdoc/>
         public override Color ImageMarginRevealedGradientBegin
         {
             get
@@ -252,6 +292,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ImageMarginRevealedGradientMiddle
         {
             get
@@ -260,6 +301,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color MenuItemPressedGradientEnd
         {
             get
@@ -268,6 +310,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color MenuItemPressedGradientBegin
         {
             get
@@ -276,6 +319,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color MenuItemPressedGradientMiddle
         {
             get
@@ -284,6 +328,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color MenuItemSelectedGradientEnd
         {
             get
@@ -292,6 +337,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color MenuItemSelectedGradientBegin
         {
             get
@@ -300,6 +346,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color MenuStripGradientEnd
         {
             get
@@ -308,6 +355,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color MenuStripGradientBegin
         {
             get
@@ -316,6 +364,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color OverflowButtonGradientEnd
         {
             get
@@ -324,6 +373,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color OverflowButtonGradientBegin
         {
             get
@@ -332,6 +382,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color OverflowButtonGradientMiddle
         {
             get
@@ -340,6 +391,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color RaftingContainerGradientEnd
         {
             get
@@ -348,6 +400,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color RaftingContainerGradientBegin
         {
             get
@@ -356,6 +409,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ToolStripGradientEnd
         {
             get
@@ -364,6 +418,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ToolStripGradientBegin
         {
             get
@@ -372,6 +427,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         public override Color ToolStripGradientMiddle
         {
             get

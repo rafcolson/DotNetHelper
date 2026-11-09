@@ -6,10 +6,13 @@ namespace WinFormsLib
     /// Uses the themed professional renderer while drawing a simple,
     /// DPI-aware selection mark for checked menu items.
     /// </summary>
+    /// <param name="colorTable">The color table that supplies the menu theme and mark colors.</param>
     public sealed class UIToolStripRenderer(UIColorTable colorTable) : ToolStripProfessionalRenderer(colorTable)
     {
         private readonly UIColorTable _colorTable = colorTable ?? throw new ArgumentNullException(nameof(colorTable));
 
+        /// <inheritdoc/>
+        /// <remarks>Draws a check mark for checked menu items or a horizontal line for indeterminate items. The mark is scaled to the owner's DPI.</remarks>
         protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
         {
             if (e.Item is not ToolStripMenuItem menuItem || menuItem.CheckState == CheckState.Unchecked)

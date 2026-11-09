@@ -1,5 +1,7 @@
 namespace WinFormsLib
 {
+    /// <summary>Detects changes to a directory by periodically comparing snapshots of its immediate contents.</summary>
+    /// <remarks>Configure and start the watcher on a Windows Forms UI thread with a message loop.</remarks>
     public sealed class PollingFileSystemWatcher : IDisposable
     {
         private readonly record struct FileSystemEntryState(string Path, FileAttributes Attributes, long Length, long LastWriteTimeUtcTicks);
@@ -10,13 +12,17 @@ namespace WinFormsLib
         private bool _initialized;
         private bool _disposed;
 
+        /// <summary>Occurs when a poll detects a change in directory existence or in the names, attributes, sizes, or last write times of its entries.</summary>
+        /// <remarks>The event is raised on the thread that runs the Windows Forms timer.</remarks>
         public event EventHandler? Changed;
 
+        /// <summary>Initializes a watcher with polling disabled.</summary>
         public PollingFileSystemWatcher()
         {
             _timer.Tick += Timer_Tick;
         }
 
+        /// <summary>Gets or sets the directory to poll. Changing it while polling establishes a new baseline.</summary>
         public string Path
         {
             get;
@@ -35,12 +41,14 @@ namespace WinFormsLib
             }
         } = string.Empty;
 
+        /// <summary>Gets or sets the polling interval in milliseconds. The value must be greater than zero.</summary>
         public int Interval
         {
             get => _timer.Interval;
             set => _timer.Interval = value;
         }
 
+        /// <summary>Gets or sets whether polling is active. Setting it to <see langword="true"/> takes an initial snapshot before starting the timer.</summary>
         public bool EnableRaisingEvents
         {
             get => _timer.Enabled;
@@ -110,6 +118,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Stops polling and releases the timer.</summary>
         public void Dispose()
         {
             if (_disposed)

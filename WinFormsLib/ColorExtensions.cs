@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace WinFormsLib
 {
+    /// <summary>Provides color conversion, blending, and palette helpers.</summary>
     public static class ColorExtensions
     {
         private class ColorJsonConverter : JsonConverter<Color>
@@ -16,14 +17,22 @@ namespace WinFormsLib
                 writer.WriteStringValue(color.ToArgb().ToString());
             }
         }
+        /// <summary>Gets a converter that stores a color as a JSON string containing its signed ARGB integer.</summary>
         public static JsonConverter JsonConverter => new ColorJsonConverter();
 
+        /// <summary>Contains the names declared by the KnownColor enumeration.</summary>
         public static readonly string[] KnownColorNames = GetKnownColorNames();
+        /// <summary>Contains the ARGB values of the grayscale palette.</summary>
         public static readonly int[] GrayColorArgbValues = GetArgbValues(GetGrayColors());
+        /// <summary>Contains the ARGB values of the bright palette.</summary>
         public static readonly int[] BrightColorArgbValues = GetArgbValues(GetBrightColors());
+        /// <summary>Contains the ARGB values of the default hue palette.</summary>
         public static readonly int[] HueColorArgbValues = GetArgbValues(GetHueColors());
+        /// <summary>Contains the ARGB values of the basic palette.</summary>
         public static readonly int[] BasicColorArgbValues = GetArgbValues(GetBasicColors());
+        /// <summary>Contains the ARGB values derived from known colors, excluding black, white, and transparent.</summary>
         public static readonly int[] KnownColorArgbValues = GetArgbValues(GetKnownColors());
+        /// <summary>Contains the ARGB values of the combined bright, hue, and basic palettes.</summary>
         public static readonly int[] ColorArgbValues = GetArgbValues(GetColors());
 
         private static Color[] GetColors()
@@ -134,6 +143,9 @@ namespace WinFormsLib
             return [.. colors];
         }
 
+        /// <summary>Creates opaque colors at eight-degree intervals from 8 through 352 degrees.</summary>
+        /// <param name="saturation">The saturation component, clamped to the range from 0 to 1.</param>
+        /// <param name="value">The value component, clamped to the range from 0 to 1.</param>
         public static Color[] GetHueColors(double saturation = 0.375, double value = 0.95)
         {
             List<Color> l = [];
@@ -164,23 +176,39 @@ namespace WinFormsLib
             return [.. l];
         }
 
+        /// <summary>Converts the RGB channels to CMYK components.</summary>
+        /// <param name="super">The source color. Its alpha channel is ignored.</param>
+        /// <remarks>Pure RGB black is represented by a black component of 1 and zero cyan, magenta, and yellow.</remarks>
         public static CMYKColor ToCMYKColor(this Color super)
         {
             byte red = super.R;
             byte green = super.G;
             byte blue = super.B;
             double black = Math.Min(1d - (red / 255d), Math.Min(1d - (green / 255d), 1d - (blue / 255d)));
+            if (black == 1d)
+            {
+                return new(0d, 0d, 0d, 1d);
+            }
+
             double cyan = (1d - (red / 255d) - black) / (1d - black);
             double magenta = (1d - (green / 255d) - black) / (1d - black);
             double yellow = (1d - (blue / 255d) - black) / (1d - black);
             return new(cyan, magenta, yellow, black);
         }
 
+        /// <summary>Converts the RGB channels to hue, saturation, and value.</summary>
+        /// <param name="super">The source color. Its alpha channel is ignored.</param>
         public static HSVColor ToHSVColor(this Color super)
         {
-            return new(super.GetHue(), super.GetSaturation(), Math.Max(super.R, Math.Max(super.G, super.B)) / 255d);
+            int maximum = Math.Max(super.R, Math.Max(super.G, super.B));
+            int minimum = Math.Min(super.R, Math.Min(super.G, super.B));
+            double saturation = maximum == 0 ? 0d : (maximum - minimum) / (double)maximum;
+            return new(super.GetHue(), saturation, maximum / 255d);
         }
 
+        /// <summary>Adjusts the value component by the supplied amount and converts the result to an opaque color.</summary>
+        /// <param name="super">The source color.</param>
+        /// <param name="d">The amount to add to the value component before clamping it to the range from 0 to 1.</param>
         public static Color WithValue(this Color super, double d)
         {
             HSVColor hsv = super.ToHSVColor();
@@ -188,10 +216,21 @@ namespace WinFormsLib
             return hsv.ToColor();
         }
 
+        /// <summary>Creates a color model from the source hue, Color.GetSaturation result, and largest RGB channel.</summary>
+        /// <param name="super">The source color. Its alpha channel is ignored.</param>
+        /// <param name="color"></param>
+        /// <remarks>The saturation component uses the HSL saturation reported by <see cref="Color.GetSaturation"/>.</remarks>
         public static bool IsLighterThan(this Color super, Color color) => super.ToHSVColor().Value > color.ToHSVColor().Value;
 
+        /// <summary>Checks whether the source color has a larger maximum RGB channel than the comparison color.</summary>
+        /// <param name="super">The source color.</param>
+        /// <param name="color">The color to compare against.</param>
         public static bool IsDarkerThan(this Color super, Color color) => color.IsLighterThan(super);
 
+        /// <summary>Blends the RGB channels of two colors and returns an opaque color.</summary>
+        /// <param name="super">The first color.</param>
+        /// <param name="color">The second color.</param>
+        /// <param name="d">The weight of the second color, clamped to the range from 0 to 1.</param>
         public static Color Mixed(this Color super, Color color, double d = 0.5)
         {
             d = Math.Min(Math.Max(d, 0), 1);
@@ -202,6 +241,9 @@ namespace WinFormsLib
             return Color.FromArgb(r, g, b);
         }
 
+        /// <summary>Multiplies the corresponding RGB channels, normalizes them to the byte range, and returns an opaque color.</summary>
+        /// <param name="super">The first color.</param>
+        /// <param name="color">The second color.</param>
         public static Color Multiplied(this Color super, Color color)
         {
             byte r = (byte)Math.Round(Math.Min((int)Math.Round(super.R * color.R / 255d), 255d));
@@ -210,8 +252,12 @@ namespace WinFormsLib
             return Color.FromArgb(r, g, b);
         }
 
+        /// <summary>Converts a color to its HTML representation.</summary>
+        /// <param name="super">The color to convert.</param>
         public static string ToHtml(this Color super) => ColorTranslator.ToHtml(super);
 
+        /// <summary>Returns the eight-digit uppercase hexadecimal ARGB representation without a prefix.</summary>
+        /// <param name="super">The color to convert.</param>
         public static string ToHex(this Color super) => super.ToArgb().ToString("X8");
     }
 }

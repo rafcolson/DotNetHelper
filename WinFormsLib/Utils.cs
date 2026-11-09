@@ -11,6 +11,7 @@ using static WinFormsLib.Constants;
 
 namespace WinFormsLib
 {
+    /// <summary>Provides Windows Forms, text search, file system, and application helpers.</summary>
     public static partial class Utils
     {
         private const int DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19;
@@ -38,6 +39,7 @@ namespace WinFormsLib
         }
 
         /// <summary>Adds an existing window to the Windows taskbar.</summary>
+        /// <param name="windowHandle">The native handle of the window to add.</param>
         /// <remarks>
         /// Call on the window's UI thread. Remove the entry with
         /// <see cref="RemoveWindowFromTaskbar"/> before destroying the window handle.
@@ -46,6 +48,7 @@ namespace WinFormsLib
         public static bool AddWindowToTaskbar(IntPtr windowHandle) => UpdateTaskbarWindow(windowHandle, add: true);
 
         /// <summary>Removes a window's entry from the Windows taskbar.</summary>
+        /// <param name="windowHandle">The native handle of the window to remove.</param>
         /// <remarks>Call on the window's UI thread while the window handle is still valid.</remarks>
         /// <returns>Whether the taskbar entry was removed successfully.</returns>
         public static bool RemoveWindowFromTaskbar(IntPtr windowHandle) => UpdateTaskbarWindow(windowHandle, add: false);
@@ -113,13 +116,20 @@ namespace WinFormsLib
         private static int _pendingTabIndex = -1;
         private static bool _tabToolTipTimerConfigured;
 
+        /// <summary>Specifies how search text is matched.</summary>
         public enum WordSearchOptions
         {
+            /// <summary>Requires a match for every search term.</summary>
             AllWords,
+            /// <summary>Returns matches for any search term.</summary>
             AnyWord,
+            /// <summary>Treats the entire search phrase as a single term.</summary>
             ExactPhrase
         }
 
+        /// <summary>Requests the selected scroll bar theme for a control with an existing handle.</summary>
+        /// <param name="control">The control to update.</param>
+        /// <param name="dark">Whether to request dark styling.</param>
         public static void SetScrollBarTheme(Control control, bool dark)
         {
             if (!control.IsHandleCreated)
@@ -131,6 +141,8 @@ namespace WinFormsLib
             _ = SendMessage(control.Handle, WM_THEMECHANGED, IntPtr.Zero, IntPtr.Zero);
         }
 
+        /// <summary>Cancels the current native interaction mode for a control with an existing handle.</summary>
+        /// <param name="control">The control to update.</param>
         public static void CancelMode(Control control)
         {
             if (control.IsHandleCreated)
@@ -139,6 +151,9 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Requests the selected title bar theme for a form on supported Windows versions.</summary>
+        /// <param name="form">The form whose title bar is updated.</param>
+        /// <param name="dark">Whether to request dark styling.</param>
         public static void SetTitleBarTheme(Form form, bool dark)
         {
             if (!form.IsHandleCreated || !OperatingSystem.IsWindowsVersionAtLeast(10, 0, 17763))
@@ -153,6 +168,7 @@ namespace WinFormsLib
             _ = DwmSetWindowAttribute(form.Handle, attribute, ref value, sizeof(int));
         }
 
+        /// <summary>The shared set of punctuation and spacing characters used for text processing.</summary>
         public static readonly HashSet<char> CommonPunctuationMarks = [Chars.SPACE, Chars.PERIOD, Chars.COMMA, Chars.QUESTION_MARK, Chars.EXCLAMATION_MARK, Chars.COLON, Chars.SEMICOLON, Chars.HYPHEN, Chars.SINGLE_QUOTE, Chars.DOUBLE_QUOTE, Chars.LEFT_CURLY_SINGLE_QUOTE, Chars.RIGHT_CURLY_SINGLE_QUOTE, Chars.LEFT_CURLY_SINGLE_QUOTE_LOW, Chars.LEFT_CURLY_DOUBLE_QUOTE, Chars.RIGHT_CURLY_DOUBLE_QUOTE, Chars.LEFT_CURLY_DOUBLE_QUOTE_LOW, Chars.LEFT_ANGLE_SINGLE_QUOTE, Chars.RIGHT_ANGLE_SINGLE_QUOTE, Chars.LEFT_ANGLE_DOUBLE_QUOTE, Chars.RIGHT_ANGLE_DOUBLE_QUOTE, Chars.LEFT_SQUARE_BRACKET, Chars.RIGHT_SQUARE_BRACKET, Chars.LEFT_ROUND_BRACKET, Chars.RIGHT_ROUND_BRACKET, Chars.LEFT_CURLY_BRACE, Chars.RIGHT_CURLY_BRACE];
 
         private static bool IsWordBoundary(char value)
@@ -164,11 +180,19 @@ namespace WinFormsLib
                 && category is not UnicodeCategory.EnclosingMark;
         }
 
+        /// <summary>Finds matching ranges using the selected search mode.</summary>
+        /// <param name="phrase">The search phrase or terms.</param>
+        /// <param name="text">The text to search.</param>
+        /// <param name="matchCase">Whether matching is case-sensitive.</param>
+        /// <param name="partialMatch">Whether matches may occur within a word.</param>
+        /// <param name="options">The search mode.</param>
+        /// <returns>Pairs containing the zero-based start index and length of each match.</returns>
+        /// <remarks>Blank search phrases produce no matches. Word-based searches ignore empty terms between whitespace separators.</remarks>
         public static int[][] GetOccurrences(string phrase, string text, [Optional, DefaultParameterValue(false)] ref bool matchCase, [Optional, DefaultParameterValue(false)] ref bool partialMatch, [Optional, DefaultParameterValue(WordSearchOptions.AllWords)] ref WordSearchOptions options)
         {
             List<int[]> occurrences = [];
 
-            if (string.IsNullOrEmpty(text))
+            if (string.IsNullOrEmpty(text) || string.IsNullOrWhiteSpace(phrase))
             {
                 return [.. occurrences];
             }
@@ -179,22 +203,9 @@ namespace WinFormsLib
                 text = text.ToLower();
             }
 
-            string[] words;
-
-            if (options.Equals(WordSearchOptions.ExactPhrase))
-            {
-                words = [phrase];
-            }
-            else
-            {
-                List<string> l = [];
-                foreach (string s in phrase.Split())
-                {
-                    _ = s.Trim();
-                    l.Add(s);
-                }
-                words = [.. l];
-            }
+            string[] words = options == WordSearchOptions.ExactPhrase
+                ? [phrase]
+                : phrase.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
 
             int n = text.Length;
 
@@ -272,6 +283,7 @@ namespace WinFormsLib
             return [.. occurrences];
         }
 
+        /// <summary>Starts a Windows shutdown with a one-second timeout.</summary>
         public static void ShutDown()
         {
             ProcessStartInfo psi = new("shutdown", "/s /t 1")
@@ -282,37 +294,50 @@ namespace WinFormsLib
             _ = Process.Start(psi);
         }
 
+        /// <summary>Identifies supported UI languages.</summary>
         public enum Language
         {
+            /// <summary>German.</summary>
             [Value("de")]
             [GlobalStringValue("German")]
             German,
+            /// <summary>English.</summary>
             [Value("en")]
             [GlobalStringValue("English")]
             English,
+            /// <summary>Spanish.</summary>
             [Value("es")]
             [GlobalStringValue("Spanish")]
             Spanish,
+            /// <summary>French.</summary>
             [Value("fr")]
             [GlobalStringValue("French")]
             French,
+            /// <summary>Italian.</summary>
             [Value("it")]
             [GlobalStringValue("Italian")]
             Italian,
+            /// <summary>Dutch.</summary>
             [Value("nl")]
             [GlobalStringValue("Dutch")]
             Dutch,
         }
 
+        /// <summary>Associates an arbitrary value with a field.</summary>
+        /// <param name="value">The value to associate with the field.</param>
         [AttributeUsage(AttributeTargets.Field)]
         public class ValueAttribute(object value) : Attribute
         {
+            /// <summary>Gets the value associated with the field.</summary>
             public object Value { get; protected set; } = value;
         }
 
+        /// <summary>Associates a localized resource string with a field.</summary>
+        /// <param name="name">The name of the localized resource.</param>
         [AttributeUsage(AttributeTargets.Field)]
         public class GlobalStringValueAttribute(string name) : Attribute
         {
+            /// <summary>Gets the localized string, or an empty string if the resource is missing.</summary>
             public string Value { get; protected set; } = Globals.ResourceManager.GetString(name) is string s ? s : string.Empty;
         }
 
@@ -334,30 +359,45 @@ namespace WinFormsLib
         {
             if (sender is System.Windows.Forms.Timer timer && timer.Tag is Func<Task> function)
             {
-                await function();
                 timer.Tag = null;
                 timer.Dispose();
+                await function();
             }
         }
 
+        /// <summary>Schedules an action using a Windows Forms timer.</summary>
+        /// <param name="action">The action to run.</param>
+        /// <param name="interval">The delay in milliseconds.</param>
         public static void Delay(Action action, int interval = 1000)
         {
             System.Windows.Forms.Timer timer = new() { Interval = interval, Enabled = true, Tag = action };
             timer.Tick += Timer_Tick;
         }
 
+        /// <summary>Schedules an asynchronous function using a Windows Forms timer.</summary>
+        /// <param name="function">The asynchronous function to run.</param>
+        /// <param name="interval">The delay in milliseconds.</param>
+        /// <remarks>The timer is disposed before invoking the function, so each scheduled call runs once.</remarks>
         public static void DelayAsync(Func<Task> function, int interval = 1000)
         {
-            System.Windows.Forms.Timer timer = new() { Interval = interval, Enabled = true, Tag = function };
+            System.Windows.Forms.Timer timer = new() { Interval = interval, Tag = function };
             timer.Tick += Timer_TickAsync;
+            timer.Start();
         }
 
+        /// <summary>Schedules an action when the task completes, faults, or is canceled.</summary>
+        /// <param name="task">The task to observe.</param>
+        /// <param name="action">The action to run.</param>
         public static async void OnTaskCompleted(Task task, Action action)
         {
             using Task tc = task.ContinueWith((result) => { action(); });
             await tc;
         }
 
+        /// <summary>Runs an action on the thread pool with cancellation before execution.</summary>
+        /// <param name="action">The action to run.</param>
+        /// <param name="cancellationTokenSource">The source whose token is passed to task scheduling. This method disposes the source at completion.</param>
+        /// <param name="onCompletion">The optional callback run after cleanup.</param>
         public static Task RunCancellableTask(Action action, CancellationTokenSource cancellationTokenSource, Action? onCompletion = null)
         {
             CancellationToken cancellationToken = cancellationTokenSource.Token;
@@ -372,16 +412,29 @@ namespace WinFormsLib
             return task;
         }
 
+        /// <summary>Checks whether the path has the file system reparse-point attribute.</summary>
+        /// <param name="path">The file system path.</param>
         public static bool IsSymbolicLink(string path) => File.GetAttributes(path).HasFlag(FileAttributes.ReparsePoint);
 
+        /// <summary>Checks whether the path identifies an existing directory without the reparse-point attribute.</summary>
+        /// <param name="path">The file system path.</param>
         public static bool IsValidDirectoryPath(string path) => !string.IsNullOrEmpty(path) && Directory.Exists(path) && !IsSymbolicLink(path);
 
+        /// <summary>Checks whether the path identifies an existing file without the reparse-point attribute.</summary>
+        /// <param name="path">The file system path.</param>
         public static bool IsValidFilePath(string path) => !string.IsNullOrEmpty(path) && File.Exists(path) && !IsSymbolicLink(path);
 
+        /// <summary>Checks whether the path identifies an existing directory or an existing file without the reparse-point attribute.</summary>
+        /// <param name="path">The file system path.</param>
         public static bool IsValidPath(string path) => (!string.IsNullOrEmpty(path) && Directory.Exists(path)) || (File.Exists(path) && !IsSymbolicLink(path));
 
+        /// <summary>Checks whether the path has the directory attribute.</summary>
+        /// <param name="path">The file system path.</param>
         public static bool IsDirectory(string path) => File.GetAttributes(path).HasFlag(FileAttributes.Directory);
 
+        /// <summary>Checks whether the drive is expected to support native file system watching.</summary>
+        /// <param name="path">The file system path.</param>
+        /// <remarks>The check treats a fixed drive without an associated partition as unsupported. Unrecognized drives are treated as supported.</remarks>
         public static bool SupportsFileSystemWatcher(string path)
         {
             const string DRIVE_TYPE_PROPERTY = "DriveType";
@@ -422,6 +475,11 @@ namespace WinFormsLib
             return true;
         }
 
+        /// <summary>Returns the flags with the specified bits set or cleared.</summary>
+        /// <typeparam name="T">The enum type.</typeparam>
+        /// <param name="flags">The initial set of flags.</param>
+        /// <param name="flag">The bits to set or clear.</param>
+        /// <param name="enabled">Whether to set the bits. Otherwise, they are cleared.</param>
         public static T GetToggledFlags<T>(T flags, T flag, bool enabled) where T : struct, Enum
         {
             long flagsValue = Convert.ToInt64(flags);
@@ -430,11 +488,17 @@ namespace WinFormsLib
             return (T)Enum.ToObject(typeof(T), value);
         }
 
+        /// <summary>Reads a string property from a JSON object, returning an empty string if absent or of another kind.</summary>
+        /// <param name="root">The JSON object to inspect.</param>
+        /// <param name="propertyName">The JSON property name.</param>
         public static string GetString(JsonElement root, string propertyName)
             => root.TryGetProperty(propertyName, out JsonElement element) && element.ValueKind == JsonValueKind.String
                 ? element.GetString() ?? EMPTY_STRING
                 : EMPTY_STRING;
 
+        /// <summary>Reads a JSON number or an invariant numeric string, returning null if neither can be read.</summary>
+        /// <param name="root">The JSON object to inspect.</param>
+        /// <param name="propertyName">The JSON property name.</param>
         public static double? GetDouble(JsonElement root, string propertyName)
         {
             return !root.TryGetProperty(propertyName, out JsonElement element)
@@ -447,6 +511,10 @@ namespace WinFormsLib
                 };
         }
 
+        /// <summary>Reads and parses a date and optional time from JSON string properties.</summary>
+        /// <param name="root">The JSON object to inspect.</param>
+        /// <param name="datePropertyName">The name of the property containing the date.</param>
+        /// <param name="timePropertyName">The name of the optional property containing the time.</param>
         public static DateTime? GetDateTime(JsonElement root, string datePropertyName, string? timePropertyName = null)
         {
             string value = GetString(root, datePropertyName);
@@ -472,6 +540,8 @@ namespace WinFormsLib
                 : value.AsDateTime();
         }
 
+        /// <summary>Resolves the target of a file system link, or returns null if it cannot be resolved.</summary>
+        /// <param name="path">The file system path.</param>
         public static string? GetTargetFile(string path)
         {
             try
@@ -482,6 +552,8 @@ namespace WinFormsLib
             catch { return null; }
         }
 
+        /// <summary>Resolves the target of a directory link, or returns null if it cannot be resolved.</summary>
+        /// <param name="path">The file system path.</param>
         public static string? GetTargetDirectory(string path)
         {
             try
@@ -502,6 +574,8 @@ namespace WinFormsLib
                 : Path.GetFullPath(Path.Join(fileSystemInfo is FileInfo fi ? fi.DirectoryName : ((DirectoryInfo)fileSystemInfo).Parent?.FullName ?? string.Empty, linkTarget));
         }
 
+        /// <summary>Gets the file name, using an untitled name when the path has no name or only an extension.</summary>
+        /// <param name="path">The file system path.</param>
         public static string GetFileName(string path)
         {
             string n = Path.GetFileName(path);
@@ -513,11 +587,15 @@ namespace WinFormsLib
             return "Untitled";
         }
 
+        /// <summary>Gets the file name without its extension, using the localized default if the name is empty.</summary>
+        /// <param name="path">The file system path.</param>
         public static string GetFileNameWithoutExtension(string path)
         {
             return Path.GetFileNameWithoutExtension(path) is string n && !string.IsNullOrEmpty(n) ? n : Globals.FileNameDefault;
         }
 
+        /// <summary>Combines the parent path with the file name without its extension.</summary>
+        /// <param name="path">The file system path.</param>
         public static string GetPathWithoutExtension(string path)
         {
             string nwe = GetFileNameWithoutExtension(path);
@@ -525,17 +603,27 @@ namespace WinFormsLib
             return string.IsNullOrEmpty(pp) ? nwe : Path.Join(pp, nwe);
         }
 
+        /// <summary>Gets the extension, including the leading dot, in lowercase.</summary>
+        /// <param name="path">The file system path.</param>
         public static string GetExtension(string path) => Path.GetExtension(path) is string e ? e.ToLower() : string.Empty;
 
+        /// <summary>Gets the directory portion of the supplied path, or an empty string if absent.</summary>
+        /// <param name="path">The file system path.</param>
         public static string GetDirectoryPath(string path) => Path.GetDirectoryName(path) is string dp ? dp : string.Empty;
 
+        /// <summary>Gets the last component of the supplied path, or an empty string if absent.</summary>
+        /// <param name="path">The file system path.</param>
         public static string GetDirectoryName(string path) => Path.GetFileName(path) is string fp ? fp : string.Empty;
 
+        /// <summary>Gets the directory portion of the path, or the root if the directory portion is unavailable.</summary>
+        /// <param name="path">The file system path.</param>
         public static string GetParentPath(string path)
         {
             return Path.GetDirectoryName(path) is string dp ? dp : Directory.GetDirectoryRoot(path) is string dr ? dr : string.Empty;
         }
 
+        /// <summary>Searches for an existing parent directory, or selects a default documents path for empty input.</summary>
+        /// <param name="path">The file system path.</param>
         public static string GetValidDirectoryPath(string path = EMPTY_STRING)
         {
             if (string.IsNullOrEmpty(path))
@@ -560,6 +648,9 @@ namespace WinFormsLib
             return path;
         }
 
+        /// <summary>Returns the portion of the full path following the parent directory prefix used by this method.</summary>
+        /// <param name="parentPath">The parent path used to derive the result.</param>
+        /// <param name="fullPath">The full path to examine.</param>
         public static string GetRelativePath(string parentPath, string fullPath)
         {
             if (parentPath.SplitLast(Path.DirectorySeparatorChar) is string[] sa1)
@@ -569,6 +660,9 @@ namespace WinFormsLib
             return fullPath.SplitFirst($"{parentPath}{Path.DirectorySeparatorChar}") is string[] sa2 ? sa2.Last() : fullPath;
         }
 
+        /// <summary>Finds an unused candidate path by adding a numbered suffix when necessary.</summary>
+        /// <param name="path">The file system path.</param>
+        /// <param name="excludedPaths">The paths to avoid, or null to inspect the parent directory.</param>
         public static string GetPathDuplicate(string path, IEnumerable<string>? excludedPaths = null)
         {
             if (excludedPaths == null)
@@ -588,10 +682,16 @@ namespace WinFormsLib
             return p;
         }
 
+        /// <summary>Combines the parent path with the file name after removing a recognized duplicate suffix.</summary>
+        /// <param name="path">The file system path.</param>
         public static string GetRawPath(string path) => Path.Join(GetParentPath(path), GetRawName(path));
 
+        /// <summary>Gets the file name with its lowercase extension and without a recognized duplicate suffix.</summary>
+        /// <param name="path">The file system path.</param>
         public static string GetRawName(string path) => $"{GetRawNameWithoutExtension(path)}{GetExtension(path)}";
 
+        /// <summary>Gets the file name without its extension or recognized duplicate suffix.</summary>
+        /// <param name="path">The file system path.</param>
         public static string GetRawNameWithoutExtension(string path)
         {
             string nwe = GetFileNameWithoutExtension(path);
@@ -608,6 +708,8 @@ namespace WinFormsLib
             return nwe;
         }
 
+        /// <summary>Returns distinct paths after removing recognized duplicate suffixes.</summary>
+        /// <param name="paths">The paths to normalize.</param>
         public static string[] GetRawPaths(IEnumerable<string> paths)
         {
             HashSet<string> hs = [];
@@ -618,6 +720,10 @@ namespace WinFormsLib
             return [.. hs];
         }
 
+        /// <summary>Lists child directories. Recursive mode also includes their immediate child directories.</summary>
+        /// <param name="directoryPath">The directory path.</param>
+        /// <param name="recursive">Whether to include paths below the immediate children.</param>
+        /// <remarks>Enumeration errors are suppressed.</remarks>
         public static string[] GetDirectoryPaths(string directoryPath, bool recursive = false)
         {
             string[] paths = [];
@@ -642,6 +748,10 @@ namespace WinFormsLib
             return paths;
         }
 
+        /// <summary>Lists files in the directory and optionally its subdirectories.</summary>
+        /// <param name="directoryPath">The directory path.</param>
+        /// <param name="recursive">Whether to include paths below the immediate children.</param>
+        /// <remarks>Enumeration errors result in an empty array.</remarks>
         public static string[] GetFilePaths(string directoryPath, bool recursive = false)
         {
             try
@@ -657,6 +767,9 @@ namespace WinFormsLib
             catch { return []; }
         }
 
+        /// <summary>Lists directory paths followed by file paths.</summary>
+        /// <param name="directoryPath">The directory path.</param>
+        /// <param name="recursive">Whether to include paths below the immediate children.</param>
         public static string[] GetAllPaths(string directoryPath, bool recursive = false)
         {
             string[] directoryPaths = GetDirectoryPaths(directoryPath, recursive);
@@ -664,6 +777,8 @@ namespace WinFormsLib
             return [.. directoryPaths.Concat(filePaths)];
         }
 
+        /// <summary>Returns the matching system special-folder path, or null if none matches.</summary>
+        /// <param name="directoryPath">The directory path.</param>
         public static string? GetSpecialFolder(string directoryPath)
         {
             foreach (string sf in GetSpecialfolders())
@@ -676,6 +791,7 @@ namespace WinFormsLib
             return null;
         }
 
+        /// <summary>Returns the paths reported for the system special-folder values.</summary>
         public static string[] GetSpecialfolders()
         {
             List<string> l = [];
@@ -686,6 +802,9 @@ namespace WinFormsLib
             return [.. l];
         }
 
+        /// <summary>Attempts to delete a file.</summary>
+        /// <param name="path">The file to delete.</param>
+        /// <returns>True if deletion completes without an exception, including when the file is already absent.</returns>
         public static bool DeleteFile(string path)
         {
             try
@@ -697,6 +816,9 @@ namespace WinFormsLib
             return false;
         }
 
+        /// <summary>Attempts to delete a directory and all its contents.</summary>
+        /// <param name="path">The directory to delete.</param>
+        /// <returns>True if the directory is deleted.</returns>
         public static bool DeleteDirectory(string path)
         {
             try
@@ -708,6 +830,9 @@ namespace WinFormsLib
             return false;
         }
 
+        /// <summary>Attempts to move a file, creating the destination parent directory if needed.</summary>
+        /// <param name="sourcePath">The source path.</param>
+        /// <param name="destinationPath">The destination path.</param>
         public static bool MoveFile(string sourcePath, string destinationPath)
         {
             if (sourcePath == destinationPath)
@@ -735,32 +860,35 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Attempts to move a directory.</summary>
+        /// <param name="sourcePath">The source path.</param>
+        /// <param name="destinationPath">The destination path.</param>
+        /// <remarks>Creates the destination parent directory if needed. An existing destination is not replaced.</remarks>
         public static bool MoveDirectory(string sourcePath, string destinationPath)
         {
             if (sourcePath == destinationPath)
             {
                 return false;
             }
-            bool dpExists = Directory.Exists(destinationPath);
-            if (!dpExists)
-            {
-                _ = Directory.CreateDirectory(destinationPath);
-            }
             try
             {
-                Directory.Move(sourcePath, destinationPath);
+                string destination = Path.TrimEndingDirectorySeparator(Path.GetFullPath(destinationPath));
+                if (Path.GetDirectoryName(destination) is string parent)
+                {
+                    _ = Directory.CreateDirectory(parent);
+                }
+                Directory.Move(sourcePath, destination);
                 return true;
             }
             catch (Exception)
             {
-                if (!dpExists)
-                {
-                    _ = DeleteDirectory(destinationPath);
-                }
                 return false;
             }
         }
 
+        /// <summary>Attempts to copy a file without replacing an existing destination.</summary>
+        /// <param name="sourcePath">The source path.</param>
+        /// <param name="destinationPath">The destination path.</param>
         public static bool CopyFile(string sourcePath, string destinationPath)
         {
             if (sourcePath == destinationPath)
@@ -788,37 +916,46 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Copies a directory tree, including empty directories, without overwriting files.</summary>
+        /// <param name="sourcePath">The source path.</param>
+        /// <param name="destinationPath">The destination path.</param>
+        /// <returns>True if the entire copy completes. A failure can leave files already copied in the destination.</returns>
         public static bool CopyDirectory(string sourcePath, string destinationPath)
         {
-            if (sourcePath == destinationPath)
-            {
-                return false;
-            }
-            bool dpExists = Directory.Exists(destinationPath);
-            if (!dpExists)
-            {
-                _ = Directory.CreateDirectory(destinationPath);
-            }
             try
             {
-                foreach (string sp in GetAllPaths(sourcePath, true))
+                string source = Path.TrimEndingDirectorySeparator(Path.GetFullPath(sourcePath));
+                string destination = Path.TrimEndingDirectorySeparator(Path.GetFullPath(destinationPath));
+                string sourcePrefix = Path.EndsInDirectorySeparator(source) ? source : source + Path.DirectorySeparatorChar;
+                if (!Directory.Exists(source)
+                    || string.Equals(source, destination, StringComparison.OrdinalIgnoreCase)
+                    || destination.StartsWith(sourcePrefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    string rp = GetRelativePath(sourcePath, sp);
-                    string dp = Path.Join(destinationPath, rp);
-                    _ = CopyFile(sp, dp);
+                    return false;
+                }
+
+                _ = Directory.CreateDirectory(destination);
+                foreach (string directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
+                {
+                    _ = Directory.CreateDirectory(Path.Combine(destination, Path.GetRelativePath(source, directory)));
+                }
+                foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+                {
+                    File.Copy(file, Path.Combine(destination, Path.GetRelativePath(source, file)));
                 }
                 return true;
             }
             catch (Exception)
             {
-                if (!dpExists)
-                {
-                    _ = DeleteDirectory(destinationPath);
-                }
                 return false;
             }
         }
 
+        /// <summary>Attempts to move a file to a new name while retaining its extension.</summary>
+        /// <param name="path">The file to rename.</param>
+        /// <param name="name">The new name without the extension.</param>
+        /// <param name="parentPath">The destination directory, or an empty string to use the current parent.</param>
+        /// <returns>The new path on success, or the original path if no move occurs.</returns>
         public static string RenameFile(string path, string name, string parentPath = EMPTY_STRING)
         {
             if (string.IsNullOrEmpty(parentPath))
@@ -843,6 +980,8 @@ namespace WinFormsLib
             return path;
         }
 
+        /// <summary>Compresses UTF-8 text using GZip.</summary>
+        /// <param name="s">The text to compress.</param>
         public static byte[] Zipped(string s)
         {
             byte[] bytes = Encoding.UTF8.GetBytes(s);
@@ -856,6 +995,10 @@ namespace WinFormsLib
             return mso.ToArray();
         }
 
+        /// <summary>Creates a ZIP archive with the supplied files at its root.</summary>
+        /// <param name="archivePath">The archive to create or replace.</param>
+        /// <param name="filePaths">The files to include. Their file names must be unique, ignoring case.</param>
+        /// <remarks>An existing archive is replaced only after the new archive has been written.</remarks>
         public static void Zipped(string archivePath, IEnumerable<string> filePaths)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(archivePath);
@@ -899,6 +1042,8 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Decompresses GZip data and decodes the result as UTF-8.</summary>
+        /// <param name="bytes">The compressed data.</param>
         public static string Unzipped(byte[] bytes)
         {
             using MemoryStream msi = new(bytes);
@@ -911,6 +1056,10 @@ namespace WinFormsLib
             return Encoding.UTF8.GetString(mso.ToArray());
         }
 
+        /// <summary>Extracts a ZIP archive and returns the paths of the extracted files.</summary>
+        /// <param name="archivePath">The ZIP archive to read.</param>
+        /// <param name="outputDirectory">The destination directory.</param>
+        /// <remarks>Existing files at the same paths are overwritten.</remarks>
         public static string[] Unzipped(string archivePath, string outputDirectory)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(archivePath);
@@ -947,15 +1096,28 @@ namespace WinFormsLib
             return [.. extractedFiles];
         }
 
+        /// <summary>Creates an icon from a bitmap file.</summary>
+        /// <param name="path">The path to the bitmap file.</param>
+        /// <returns>An independent icon that the caller must dispose.</returns>
         public static Icon GetIcon(string path)
         {
-            Bitmap bitmap = new($"@{path}");
-            IntPtr Hicon = bitmap.GetHicon();
-            Icon icon = Icon.FromHandle(Hicon);
-            _ = DestroyIcon(icon.Handle);
-            return icon;
+            using Bitmap bitmap = new(path);
+            IntPtr handle = bitmap.GetHicon();
+            try
+            {
+                using Icon icon = Icon.FromHandle(handle);
+                return (Icon)icon.Clone();
+            }
+            finally
+            {
+                _ = DestroyIcon(handle);
+            }
         }
 
+        /// <summary>Attempts to launch an existing executable.</summary>
+        /// <param name="path">The executable path.</param>
+        /// <exception cref="IOException">The file does not exist.</exception>
+        /// <exception cref="ArgumentException">The file does not have the executable extension.</exception>
         public static void Execute(string path)
         {
             if (File.Exists(path))
@@ -983,6 +1145,8 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Sets the minimum size of each control to the largest width and height in the collection.</summary>
+        /// <param name="controlCollection">A nonempty collection of controls.</param>
         public static void MatchSizes(Control.ControlCollection controlCollection)
         {
             IEnumerable<Control> ie = controlCollection.Cast<Control>();
@@ -994,6 +1158,12 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Estimates a layout size for displaying text.</summary>
+        /// <param name="text">The text to measure.</param>
+        /// <param name="font">The font to use, or null to use the library default.</param>
+        /// <param name="dimensions">The proposed dimensions used for measuring and choosing the aspect ratio.</param>
+        /// <param name="padding">Optional padding added to the library default.</param>
+        /// <param name="format">The text rendering flags used for measuring.</param>
         public static Size CalculateSize
         (
             string text,
@@ -1017,6 +1187,11 @@ namespace WinFormsLib
             return new(w, h);
         }
 
+        /// <summary>Returns the widest measured item text with margin, subject to the supplied minimum.</summary>
+        /// <param name="objects">The items to measure.</param>
+        /// <param name="font">The measurement font.</param>
+        /// <param name="marginHorizontal">The horizontal margin in pixels.</param>
+        /// <param name="minWidth">The minimum result width in pixels.</param>
         public static int GetMaxWidth(object[] objects, Font font, int marginHorizontal = 0, int minWidth = 0)
         {
             int marginOfError = 2;
@@ -1030,6 +1205,11 @@ namespace WinFormsLib
             return l.Max();
         }
 
+        /// <summary>Returns the tallest measured item text with margin, subject to the supplied minimum.</summary>
+        /// <param name="objects">The items to measure.</param>
+        /// <param name="font">The measurement font.</param>
+        /// <param name="marginVertical">The vertical margin in pixels.</param>
+        /// <param name="minHeight">The minimum result height in pixels.</param>
         public static int GetMaxHeight(object[] objects, Font font, int marginVertical = 0, int minHeight = 0)
         {
             int marginOfError = 2;
@@ -1043,6 +1223,11 @@ namespace WinFormsLib
             return l.Max();
         }
 
+        /// <summary>Returns the maximum measured width and height across the item text.</summary>
+        /// <param name="objects">The items to measure.</param>
+        /// <param name="font">The measurement font.</param>
+        /// <param name="margin">The margin added to the measurements.</param>
+        /// <param name="minSize">The optional minimum width and height.</param>
         public static Size GetMaxSize(object[] objects, Font font, Padding margin, Size? minSize = null)
         {
             minSize ??= new();
@@ -1051,6 +1236,9 @@ namespace WinFormsLib
             return new(GetMaxWidth(objects, font, margin.Horizontal, mw), GetMaxHeight(objects, font, margin.Vertical, mh));
         }
 
+        /// <summary>Calculates column and row counts for arranging items in a grid.</summary>
+        /// <param name="numItems">The number of items.</param>
+        /// <param name="landscape">Whether to add extra columns rather than extra rows.</param>
         public static Size GetTableLayout(int numItems, bool landscape = true)
         {
             int u = (int)Math.Sqrt(numItems);
@@ -1060,6 +1248,8 @@ namespace WinFormsLib
             return new(w, h);
         }
 
+        /// <summary>Extracts URL matches and removes trailing periods.</summary>
+        /// <param name="text">The text to scan.</param>
         public static string[] GetUrls(string text)
         {
             List<string> l = [];
@@ -1068,6 +1258,9 @@ namespace WinFormsLib
             return [.. l];
         }
 
+        /// <summary>Creates link ranges for the first occurrence of each label in the text.</summary>
+        /// <param name="text">The label text.</param>
+        /// <param name="textLinkPairs">The display text and destinations, or null to detect URLs automatically.</param>
         public static LinkLabel.Link[] GetLinkLabelLinks(string text, Dictionary<string, string>? textLinkPairs = null)
         {
             List<LinkLabel.Link> l = [];
@@ -1085,6 +1278,9 @@ namespace WinFormsLib
             return [.. l];
         }
 
+        /// <summary>Selects the requested language code if supported, or the second configured code otherwise.</summary>
+        /// <param name="globals">The supported language codes and associated values.</param>
+        /// <param name="cultureInfo">The preferred culture, or null to use the current culture. The invariant culture also selects the current culture.</param>
         public static string GetValidTwoLetterISOLanguageName(Dictionary<string, string[]> globals, CultureInfo? cultureInfo)
         {
             if (cultureInfo == null || cultureInfo == CULTURE_INFO_DEFAULT)
@@ -1100,6 +1296,9 @@ namespace WinFormsLib
             return n;
         }
 
+        /// <summary>Writes resource bytes to a temporary file if the requested name does not already exist.</summary>
+        /// <param name="name">The temporary file name.</param>
+        /// <param name="resource">The bytes to write if the file is absent.</param>
         public static string GetTempResource(string name, byte[] resource)
         {
             string path = Path.Join(Path.GetTempPath(), name);
@@ -1111,11 +1310,18 @@ namespace WinFormsLib
             return path;
         }
 
+        /// <summary>Sets the tooltip text for a control.</summary>
+        /// <param name="control">The control to associate with the tooltip.</param>
+        /// <param name="caption">The tooltip text.</param>
         public static void AddToolTip(this Control control, string caption) => _toolTip.SetToolTip(control, caption);
 
+        /// <summary>Sets the initial tooltip delay for controls.</summary>
+        /// <param name="initialDelay">The initial delay in milliseconds, with a minimum of one.</param>
         public static void SetToolTipInitialDelay(int initialDelay) =>
             _toolTip.InitialDelay = Math.Max(initialDelay, 1);
 
+        /// <summary>Sets the initial tooltip delay for tool strip items.</summary>
+        /// <param name="initialDelay">The initial delay in milliseconds, with a minimum of one.</param>
         public static void SetToolStripToolTipInitialDelay(int initialDelay)
         {
             int delay = Math.Max(initialDelay, 1);
@@ -1123,6 +1329,8 @@ namespace WinFormsLib
             _toolStripToolTipTimer.Interval = delay;
         }
 
+        /// <summary>Sets the initial tooltip delay for tab headers.</summary>
+        /// <param name="initialDelay">The initial delay in milliseconds, with a minimum of one.</param>
         public static void SetTabToolTipInitialDelay(int initialDelay)
         {
             _tabToolTipInitialDelay = Math.Max(initialDelay, 1);
@@ -1136,6 +1344,9 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Enables or disables custom tooltips for a tab control and disables the built-in tooltips.</summary>
+        /// <param name="tabControl">The tab control to configure.</param>
+        /// <param name="enabled">Whether custom tooltips are enabled.</param>
         public static void SetTabToolTips(this TabControl tabControl, bool enabled)
         {
             tabControl.ShowToolTips = false;
@@ -1234,6 +1445,9 @@ namespace WinFormsLib
             _pendingTabIndex = -1;
         }
 
+        /// <summary>Registers a custom tooltip for a tool strip item and disables its built-in tooltip.</summary>
+        /// <param name="item">The tool strip item.</param>
+        /// <param name="caption">The tooltip text.</param>
         public static void AddToolTip(this ToolStripItem item, string caption)
         {
             item.AutoToolTip = false;
@@ -1298,6 +1512,9 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Sets the shared tooltip colors and enables owner drawing.</summary>
+        /// <param name="foreColor">The tooltip text color.</param>
+        /// <param name="backColor">The tooltip background color.</param>
         public static void SetToolTipColors(Color foreColor, Color backColor)
         {
             _toolTip.ForeColor = foreColor;
@@ -1332,8 +1549,12 @@ namespace WinFormsLib
                 TextFormatFlags.NoPadding | TextFormatFlags.VerticalCenter);
         }
 
+        /// <summary>Creates a thumbnail at the supplied bitmap's dimensions.</summary>
+        /// <param name="bmp">The source bitmap, or null to return null.</param>
+        /// <returns>The thumbnail image, which the caller must dispose, or null.</returns>
         public static Image? GetThumbnailImage(Bitmap? bmp) => bmp?.GetThumbnailImage(bmp.Width, bmp.Height, null, IntPtr.Zero);
 
+        /// <summary>Disposes the shared tooltip components, tab tooltip timer, and measurement label.</summary>
         public static void Dispose()
         {
             Debug.WriteLine($"Disposing 'Utils'...");

@@ -18,6 +18,7 @@ namespace WinFormsLib
         /// <summary>
         /// Creates a context menu in the specified component container.
         /// </summary>
+        /// <param name="container">The component container that owns the menu.</param>
         public AdvContextMenuStrip(IContainer container) : base(container)
         {
             InitializeDpiMetrics();

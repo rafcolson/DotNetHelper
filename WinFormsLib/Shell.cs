@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace WinFormsLib
 {
+    /// <summary>Represents a file or directory and exposes its Windows Shell metadata and thumbnails.</summary>
     public sealed class ShellObject : IDisposable
     {
         private readonly string _path;
@@ -15,10 +16,19 @@ namespace WinFormsLib
             Thumbnail = new ShellThumbnail(path);
         }
 
+        /// <summary>Gets whether metadata reads request only fast Shell properties.</summary>
         public bool FastSystemPropertiesOnly => Properties.System.FastSystemPropertiesOnly;
+        /// <summary>Gets the metadata groups for this Shell object.</summary>
         public ShellProperties Properties { get; }
+        /// <summary>Gets the thumbnail cache owned by this Shell object.</summary>
         public ShellThumbnail Thumbnail { get; }
 
+        /// <summary>Creates a Shell object for an existing file or directory.</summary>
+        /// <param name="path">The file or directory path.</param>
+        /// <param name="fastSystemPropertiesOnly">Whether to request only fast Shell properties when reading metadata.</param>
+        /// <returns>A Shell object that the caller must dispose.</returns>
+        /// <exception cref="ArgumentException"><paramref name="path"/> is null, empty, or whitespace.</exception>
+        /// <exception cref="FileNotFoundException">The path does not identify an existing file or directory.</exception>
         public static ShellObject FromParsingName(string path, bool fastSystemPropertiesOnly = false)
         {
             return string.IsNullOrWhiteSpace(path)
@@ -28,6 +38,7 @@ namespace WinFormsLib
                 : new ShellObject(path, fastSystemPropertiesOnly);
         }
 
+        /// <summary>Disposes the thumbnail cache owned by this Shell object.</summary>
         public void Dispose()
         {
             if (_disposed)
@@ -38,21 +49,35 @@ namespace WinFormsLib
             Thumbnail.Dispose();
         }
 
+        /// <summary>Compares Shell objects by their stored paths, using an ordinal case-insensitive comparison.</summary>
+        /// <param name="obj">The object to compare with this instance.</param>
+        /// <returns><see langword="true"/> if the other object is a Shell object with a matching path.</returns>
         public override bool Equals(object? obj) => obj is ShellObject so && string.Equals(_path, so._path, StringComparison.OrdinalIgnoreCase);
 
+        /// <summary>Returns the ordinal case-insensitive hash code of the stored path.</summary>
         public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(_path);
     }
 
+    /// <summary>Groups the Shell properties for a file or directory.</summary>
+    /// <param name="path">The file or directory path.</param>
+    /// <param name="fastSystemPropertiesOnly">Whether to request only fast Shell properties when reading metadata.</param>
     public sealed class ShellProperties(string path, bool fastSystemPropertiesOnly = false)
     {
+        /// <summary>Gets system metadata and its specialized property groups.</summary>
         public SystemProperties System { get; } = new SystemProperties(path, fastSystemPropertiesOnly);
+        /// <summary>Gets the collection of properties accessible by name.</summary>
         public ShellPropertyCollection DefaultPropertyCollection { get; } = new ShellPropertyCollection(path);
     }
 
+    /// <summary>Provides access to supported Shell properties by name.</summary>
+    /// <param name="path">The file or directory path.</param>
     public sealed class ShellPropertyCollection(string path)
     {
         private readonly string _path = path;
 
+        /// <summary>Gets the named property. The supported key is <c>System.FileAttributes</c>.</summary>
+        /// <param name="key">The property name.</param>
+        /// <exception cref="IndexOutOfRangeException">The property name is unsupported.</exception>
         public ShellProperty<object?> this[string key] => key switch
         {
             "System.FileAttributes" => new ShellProperty<object?>(() => (uint)File.GetAttributes(_path)),
@@ -60,8 +85,12 @@ namespace WinFormsLib
         };
     }
 
+    /// <summary>Exposes system metadata for a file or directory.</summary>
     public sealed class SystemProperties
     {
+        /// <summary>Initializes the metadata group for the specified path.</summary>
+        /// <param name="path">The file or directory path.</param>
+        /// <param name="fastSystemPropertiesOnly">Whether to request only fast Shell properties when reading metadata.</param>
         public SystemProperties(string path, bool fastSystemPropertiesOnly = false)
         {
             FastSystemPropertiesOnly = fastSystemPropertiesOnly;
@@ -84,28 +113,46 @@ namespace WinFormsLib
             GPS = new GpsProperties(path, FastSystemPropertiesOnly);
         }
 
+        /// <summary>Gets whether metadata reads request only fast Shell properties.</summary>
         public bool FastSystemPropertiesOnly { get; }
+        /// <summary>Gets the property for the Shell's numeric classification of the item.</summary>
         public ShellProperty<int?> PerceivedType { get; }
+        /// <summary>Gets the property for the display text of the item type.</summary>
         public ShellProperty<string> ItemTypeText { get; }
+        /// <summary>Gets the property for the Shell item type identifier.</summary>
         public ShellProperty<string> ItemType { get; }
+        /// <summary>Gets the local last-write time property.</summary>
         public ShellProperty<DateTime?> DateModified { get; }
+        /// <summary>Gets the local creation time property.</summary>
         public ShellProperty<DateTime?> DateCreated { get; }
+        /// <summary>Gets the item size property in bytes.</summary>
         public ShellProperty<ulong?> Size { get; }
 
+        /// <summary>Gets the item's title metadata property.</summary>
         public ShellProperty<string> Title { get; }
+        /// <summary>Gets the item's subject metadata property.</summary>
         public ShellProperty<string> Subject { get; }
+        /// <summary>Gets the item's comment metadata property.</summary>
         public ShellProperty<string> Comment { get; }
+        /// <summary>Gets the item's keyword metadata property.</summary>
         public ShellProperty<string[]> Keywords { get; }
 
+        /// <summary>Gets the photo metadata group.</summary>
         public PhotoProperties Photo { get; }
+        /// <summary>Gets the media metadata group.</summary>
         public MediaProperties Media { get; }
+        /// <summary>Gets the GPS metadata group.</summary>
         public GpsProperties GPS { get; }
 
         private GetPropertyStoreFlags GetFlags() => FastSystemPropertiesOnly ? GetPropertyStoreFlags.FastPropertiesOnly : GetPropertyStoreFlags.Default;
     }
 
+    /// <summary>Exposes photo metadata reported by the Windows Shell.</summary>
     public sealed class PhotoProperties
     {
+        /// <summary>Initializes the metadata group for the specified path.</summary>
+        /// <param name="path">The file or directory path.</param>
+        /// <param name="fastSystemPropertiesOnly">Whether to request only fast Shell properties when reading metadata.</param>
         public PhotoProperties(string path, bool fastSystemPropertiesOnly = false)
         {
             FastSystemPropertiesOnly = fastSystemPropertiesOnly;
@@ -117,31 +164,46 @@ namespace WinFormsLib
             Orientation = ShellPropertyStore.Create<ushort?>(path, "System.Photo.Orientation", null, flags);
         }
 
+        /// <summary>Gets whether metadata reads request only fast Shell properties.</summary>
         public bool FastSystemPropertiesOnly { get; }
+        /// <summary>Gets the camera manufacturer property.</summary>
         public ShellProperty<string> CameraManufacturer { get; }
+        /// <summary>Gets the camera model property.</summary>
         public ShellProperty<string> CameraModel { get; }
+        /// <summary>Gets the capture date and time property.</summary>
         public ShellProperty<DateTime?> DateTaken { get; }
+        /// <summary>Gets the recorded photo orientation property.</summary>
         public ShellProperty<ushort?> Orientation { get; }
 
         private GetPropertyStoreFlags GetFlags() => FastSystemPropertiesOnly ? GetPropertyStoreFlags.FastPropertiesOnly : GetPropertyStoreFlags.Default;
     }
 
+    /// <summary>Exposes media metadata reported by the Windows Shell.</summary>
     public sealed class MediaProperties
     {
+        /// <summary>Initializes the metadata group for the specified path.</summary>
+        /// <param name="path">The file or directory path.</param>
+        /// <param name="fastSystemPropertiesOnly">Whether to request only fast Shell properties when reading metadata.</param>
         public MediaProperties(string path, bool fastSystemPropertiesOnly = false)
         {
             FastSystemPropertiesOnly = fastSystemPropertiesOnly;
             DateEncoded = ShellPropertyStore.Create<DateTime?>(path, "System.Media.DateEncoded", null, GetFlags());
         }
 
+        /// <summary>Gets whether metadata reads request only fast Shell properties.</summary>
         public bool FastSystemPropertiesOnly { get; }
+        /// <summary>Gets the media encoding date and time property.</summary>
         public ShellProperty<DateTime?> DateEncoded { get; }
 
         private GetPropertyStoreFlags GetFlags() => FastSystemPropertiesOnly ? GetPropertyStoreFlags.FastPropertiesOnly : GetPropertyStoreFlags.Default;
     }
 
+    /// <summary>Exposes GPS metadata reported by the Windows Shell.</summary>
     public sealed class GpsProperties
     {
+        /// <summary>Initializes the metadata group for the specified path.</summary>
+        /// <param name="path">The file or directory path.</param>
+        /// <param name="fastSystemPropertiesOnly">Whether to request only fast Shell properties when reading metadata.</param>
         public GpsProperties(string path, bool fastSystemPropertiesOnly = false)
         {
             FastSystemPropertiesOnly = fastSystemPropertiesOnly;
@@ -158,41 +220,61 @@ namespace WinFormsLib
             LongitudeDenominator = ShellPropertyStore.Create(path, "System.GPS.LongitudeDenominator", Array.Empty<uint>(), flags);
         }
 
+        /// <summary>Gets whether metadata reads request only fast Shell properties.</summary>
         public bool FastSystemPropertiesOnly { get; }
+        /// <summary>Gets the recorded GPS area information property.</summary>
         public ShellProperty<string> AreaInformation { get; }
+        /// <summary>Gets the latitude components reported by the Shell.</summary>
         public ShellProperty<double[]> Latitude { get; }
+        /// <summary>Gets the longitude components reported by the Shell.</summary>
         public ShellProperty<double[]> Longitude { get; }
+        /// <summary>Gets the latitude reference, typically north or south.</summary>
         public ShellProperty<string> LatitudeRef { get; }
+        /// <summary>Gets the longitude reference, typically east or west.</summary>
         public ShellProperty<string> LongitudeRef { get; }
+        /// <summary>Gets the numerators of the latitude components.</summary>
         public ShellProperty<uint[]> LatitudeNumerator { get; }
+        /// <summary>Gets the numerators of the longitude components.</summary>
         public ShellProperty<uint[]> LongitudeNumerator { get; }
+        /// <summary>Gets the denominators of the latitude components.</summary>
         public ShellProperty<uint[]> LatitudeDenominator { get; }
+        /// <summary>Gets the denominators of the longitude components.</summary>
         public ShellProperty<uint[]> LongitudeDenominator { get; }
 
         private GetPropertyStoreFlags GetFlags() => FastSystemPropertiesOnly ? GetPropertyStoreFlags.FastPropertiesOnly : GetPropertyStoreFlags.Default;
     }
 
+    /// <summary>Represents a stored value or a value accessed through delegates.</summary>
+    /// <typeparam name="T">The type of the property value.</typeparam>
     public sealed class ShellProperty<T>
     {
         private readonly Func<T>? _getter;
         private readonly Action<T>? _setter;
         private T _value = default!;
 
+        /// <summary>Initializes a stored property with the default value of its type.</summary>
         public ShellProperty()
         {
         }
 
+        /// <summary>Initializes a stored property with the supplied value.</summary>
+        /// <param name="value">The initial value.</param>
         public ShellProperty(T value)
         {
             _value = value;
         }
 
+        /// <summary>Initializes a property backed by delegates.</summary>
+        /// <param name="getter">The delegate invoked on every read.</param>
+        /// <param name="setter">The delegate invoked on writes, if supplied.</param>
+        /// <remarks>With a getter and no setter, assigning a value does not affect subsequent reads.</remarks>
         public ShellProperty(Func<T> getter, Action<T>? setter = null)
         {
             _getter = getter;
             _setter = setter;
         }
 
+        /// <summary>Gets or sets the value, invoking the configured delegate for the operation when present.</summary>
         public T Value
         {
             get => _getter == null ? _value : _getter();
@@ -209,9 +291,13 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Gets the current value as an object, boxing value types.</summary>
         public object? ValueAsObject => Value;
     }
 
+    /// <summary>Loads and caches thumbnails or icons supplied by the Windows Shell.</summary>
+    /// <param name="path">The file or directory path.</param>
+    /// <remarks>Returned bitmaps belong to the cache. Clone them if they must outlive a refresh or disposal.</remarks>
     public sealed class ShellThumbnail(string path) : IDisposable
     {
         private readonly string _path = path;
@@ -221,11 +307,17 @@ namespace WinFormsLib
         private Bitmap? _extraLargeBitmap;
         private bool _disposed;
 
+        /// <summary>Gets the image requested at 16 pixels, or <see langword="null"/> if the Shell cannot supply one.</summary>
         public Bitmap? SmallBitmap => _smallBitmap ??= GetBitmap(16);
+        /// <summary>Gets the image requested at 48 pixels, or <see langword="null"/> if the Shell cannot supply one.</summary>
         public Bitmap? MediumBitmap => _mediumBitmap ??= GetBitmap(48);
+        /// <summary>Gets the image requested at 128 pixels, or <see langword="null"/> if the Shell cannot supply one.</summary>
         public Bitmap? LargeBitmap => _largeBitmap ??= GetBitmap(128);
+        /// <summary>Gets the image requested at 256 pixels, or <see langword="null"/> if the Shell cannot supply one.</summary>
         public Bitmap? ExtraLargeBitmap => _extraLargeBitmap ??= GetBitmap(256);
 
+        /// <summary>Disposes cached bitmaps and notifies the Shell that the item has changed.</summary>
+        /// <exception cref="ObjectDisposedException">The thumbnail cache has been disposed.</exception>
         public void Refresh()
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
@@ -240,6 +332,7 @@ namespace WinFormsLib
             ShellImageFactory.NotifyUpdate(_path);
         }
 
+        /// <summary>Disposes the cached bitmaps.</summary>
         public void Dispose()
         {
             if (_disposed)

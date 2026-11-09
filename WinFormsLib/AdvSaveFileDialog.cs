@@ -2,15 +2,33 @@ using System.Runtime.InteropServices;
 
 namespace WinFormsLib;
 
+/// <summary>Shows the Windows Save As dialog with a suggested file name for each file type.</summary>
 public sealed class AdvSaveFileDialog
 {
+    /// <summary>Defines a file type displayed in the Save As dialog.</summary>
+    /// <param name="Description">The label displayed in the file type list.</param>
+    /// <param name="Pattern">The filter pattern, such as <c>*.txt</c>.</param>
+    /// <param name="DefaultFileName">The file name suggested when this file type is selected.</param>
     public sealed record FileType(string Description, string Pattern, string DefaultFileName);
 
+    /// <summary>Gets the default extension to append when the entered file name has no extension.</summary>
+    /// <remarks>Specify the extension without a leading period, such as <c>txt</c>.</remarks>
     public string DefaultExtension { get; init; } = string.Empty;
+
+    /// <summary>Gets the available file types in display order. Supply at least one entry. The first is selected initially.</summary>
     public IReadOnlyList<FileType> FileTypes { get; init; } = [];
+
+    /// <summary>Gets the full file system path selected the last time the user confirmed the dialog.</summary>
     public string FileName { get; private set; } = string.Empty;
+
+    /// <summary>Gets the one-based index of the last confirmed file type, or zero before the first confirmation.</summary>
     public int FilterIndex { get; private set; }
 
+    /// <summary>Shows the modal dialog and records the selected path and file type on confirmation.</summary>
+    /// <param name="owner">The window that owns the dialog.</param>
+    /// <returns><see cref="DialogResult.OK"/> if the user confirms, or <see cref="DialogResult.Cancel"/> if the user cancels.</returns>
+    /// <exception cref="COMException">The Windows dialog reports a failure other than cancellation.</exception>
+    /// <remarks>Call on an STA UI thread. The dialog selects a path and prompts before overwriting an existing file. The caller writes the file.</remarks>
     public DialogResult ShowDialog(IWin32Window owner)
     {
         IFileDialog dialog = (IFileDialog)new FileSaveDialog();

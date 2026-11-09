@@ -2,6 +2,7 @@ using System.Drawing.Drawing2D;
 
 namespace WinFormsLib
 {
+    /// <summary>A combo box with a custom flat appearance and text history.</summary>
     public partial class FlatComboBox : ComboBox
     {
 
@@ -23,15 +24,20 @@ namespace WinFormsLib
         private ComboBoxStyle _dropDownStyle;
         private Color _backColor;
 
+        /// <summary>Gets or sets the border color used when the enabled control is hovered, focused, or open.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Color ActiveBorderColor { get; set; } = SystemColors.ActiveBorder;
+        /// <summary>Gets or sets the border color used when the control is inactive or disabled.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Color InactiveBorderColor { get; set; } = SystemColors.InactiveBorder;
+        /// <summary>Gets or sets the background color of the drop-down button.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Color ButtonFaceColor { get; set; } = SystemColors.ButtonFace;
+        /// <summary>Gets or sets the background color applied when the control is disabled.</summary>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public Color DisabledBackColor { get; set; } = SystemColors.Control;
 
+        /// <summary>Initializes a combo box with flat styling and buffered painting.</summary>
         public FlatComboBox() : base()
         {
             _dropDownStyle = DropDownStyle;
@@ -40,6 +46,7 @@ namespace WinFormsLib
             SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw, true);
         }
 
+        /// <inheritdoc/>
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
@@ -49,6 +56,8 @@ namespace WinFormsLib
             _ = SetWindowTheme(Handle, string.Empty, string.Empty);
         }
 
+        /// <summary>Gets or sets the maximum number of history entries, clamped to the range from 0 to 30.</summary>
+        /// <remarks>Reducing the limit discards the oldest entries and resets the history position to the newest retained entry.</remarks>
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public int UndoLevelsCount
         {
@@ -64,16 +73,20 @@ namespace WinFormsLib
             }
         } = 10;
 
+        /// <summary>Gets a copy of the saved text history in oldest-first order.</summary>
         [System.ComponentModel.Browsable(false)]
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public string[] History => [.. _history];
 
+        /// <summary>Gets whether undo can restore saved text or move to an earlier entry.</summary>
         [System.ComponentModel.Browsable(false)]
         public bool CanUndo => _history.Count != 0 && (historyIndex > 0 || Text != _history[historyIndex]);
 
+        /// <summary>Gets whether a later history entry exists and the text matches the current entry.</summary>
         [System.ComponentModel.Browsable(false)]
         public bool CanRedo => _history.Count != 0 && historyIndex < _history.Count - 1 && Text == _history[historyIndex];
 
+        /// <summary>Gets or sets the underlying combo box's flat style.</summary>
         [System.ComponentModel.Browsable(false)]
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public new FlatStyle FlatStyle
@@ -88,6 +101,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         protected override void WndProc(ref Message m)
         {
             if (m.Msg == WM_ERASEBKGND)
@@ -145,34 +159,44 @@ namespace WinFormsLib
             target.DrawImageUnscaled(buffer, Point.Empty);
         }
 
+        /// <inheritdoc/>
+        /// <remarks>Repaints the border after raising the event.</remarks>
         protected override void OnMouseEnter(EventArgs e)
         {
+            base.OnMouseEnter(e);
             DrawBorderNow();
         }
 
+        /// <inheritdoc/>
+        /// <remarks>Repaints the border after raising the event.</remarks>
         protected override void OnMouseLeave(EventArgs e)
         {
+            base.OnMouseLeave(e);
             DrawBorderNow();
         }
 
+        /// <inheritdoc/>
         protected override void OnGotFocus(EventArgs e)
         {
             base.OnGotFocus(e);
             DrawBorderNow();
         }
 
+        /// <inheritdoc/>
         protected override void OnLostFocus(EventArgs e)
         {
             base.OnLostFocus(e);
             DrawBorderNow();
         }
 
+        /// <inheritdoc/>
         protected override void OnDropDown(EventArgs e)
         {
             base.OnDropDown(e);
             DrawBorderNow();
         }
 
+        /// <inheritdoc/>
         protected override void OnDropDownClosed(EventArgs e)
         {
             base.OnDropDownClosed(e);
@@ -244,18 +268,21 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         protected override void OnEnabledChanged(EventArgs e)
         {
             ToggleEnabled();
             base.OnEnabledChanged(e);
         }
 
+        /// <inheritdoc/>
         protected override void OnParentEnabledChanged(EventArgs e)
         {
             ToggleEnabled();
             base.OnParentEnabledChanged(e);
         }
 
+        /// <summary>Saves the current nonempty text if it differs from the current history entry and history is enabled.</summary>
         public void UpdateHistory()
         {
             if (UndoLevelsCount != 0 && Text.Length != 0 && (_history.Count == 0 || Text != _history[historyIndex]))
@@ -270,6 +297,8 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Replaces the saved history with the newest nonempty entries up to the configured limit.</summary>
+        /// <param name="history">The source history in oldest-first order.</param>
         public void ReplaceHistory(IEnumerable<string> history)
         {
             _history.Clear();
@@ -277,6 +306,8 @@ namespace WinFormsLib
             historyIndex = Math.Max(_history.Count - 1, 0);
         }
 
+        /// <summary>Selects the last matching history entry and uses it as the control text.</summary>
+        /// <param name="item">The history text to find.</param>
         public void SelectHistoryItem(string item)
         {
             int index = _history.LastIndexOf(item);
@@ -287,11 +318,13 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Deletes the selected text.</summary>
         public void Delete()
         {
             SelectedText = string.Empty;
         }
 
+        /// <summary>Copies the selected text to the clipboard and deletes it.</summary>
         public void Cut()
         {
             string s = SelectedText;
@@ -302,6 +335,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Copies the selected text to the clipboard.</summary>
         public void Copy()
         {
             string s = SelectedText;
@@ -311,6 +345,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Replaces the selected text with clipboard text, joining lines from rich text with spaces.</summary>
         public void Paste()
         {
             if (Clipboard.ContainsText(TextDataFormat.Rtf))
@@ -325,6 +360,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Restores the current history entry if the text differs, or moves to the previous entry.</summary>
         public void Undo()
         {
             if (_history.Count != 0)
@@ -342,6 +378,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Moves to the next history entry if one exists and uses it as the control text.</summary>
         public void Redo()
         {
             if (_history.Count != 0 & historyIndex < _history.Count - 1)

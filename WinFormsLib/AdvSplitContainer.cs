@@ -3,6 +3,7 @@ namespace WinFormsLib
     /// <summary>
     /// SplitContainer that buffers painting of its panels and child windows together.
     /// </summary>
+    /// <remarks>The composited window style applies to both panels and their child windows during layout changes.</remarks>
     public sealed class AdvSplitContainer : SplitContainer
     {
         private const int WS_EX_COMPOSITED = 0x02000000;

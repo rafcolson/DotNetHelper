@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Windows.Forms.VisualStyles;
 
 namespace WinFormsLib
 {
@@ -26,6 +27,7 @@ namespace WinFormsLib
         private readonly bool _itemSizeInitialized;
         private nint _layoutFontHandle;
 
+        /// <summary>Initializes an owner-drawn tab control with buffered painting.</summary>
         public AdvTabControl() : base()
         {
             _padding = base.Padding;
@@ -37,6 +39,7 @@ namespace WinFormsLib
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.UserPaint, true);
         }
 
+        /// <summary>Gets or sets the background color painted behind the tabs. An empty color resets it to the system control color.</summary>
         [Category("Appearance")]
         [DefaultValue(typeof(Color), "Control")]
         public override Color BackColor
@@ -60,6 +63,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Gets or sets the color of the tab outlines and page border.</summary>
         [Category("Appearance")]
         [DefaultValue(typeof(Color), "ControlDark")]
         public Color FlatBorderColor
@@ -75,6 +79,7 @@ namespace WinFormsLib
             }
         } = SystemColors.ControlDark;
 
+        /// <summary>Gets or sets the fill color of an unselected tab under the pointer.</summary>
         [Category("Appearance")]
         [DefaultValue(typeof(Color), "ControlLight")]
         public Color HotColor
@@ -90,6 +95,7 @@ namespace WinFormsLib
             }
         } = SystemColors.ControlLight;
 
+        /// <summary>Gets or sets the fill color of the selected tab.</summary>
         [Category("Appearance")]
         [DefaultValue(typeof(Color), "Control")]
         public Color SelectedTabColor
@@ -105,6 +111,7 @@ namespace WinFormsLib
             }
         } = SystemColors.Control;
 
+        /// <summary>Gets or sets the fill color of an unselected tab outside the pointer.</summary>
         [Category("Appearance")]
         [DefaultValue(typeof(Color), "Control")]
         public Color TabColor
@@ -120,6 +127,7 @@ namespace WinFormsLib
             }
         } = SystemColors.Control;
 
+        /// <summary>Gets or sets the selected tab's font style, also used to calculate tab layout.</summary>
         [Category("Appearance")]
         [DefaultValue(typeof(FontStyle), "Regular")]
         public FontStyle SelectedTabFontStyle
@@ -136,6 +144,7 @@ namespace WinFormsLib
             }
         } = FontStyle.Regular;
 
+        /// <summary>Gets or sets the tab padding at 96 DPI. The native control receives DPI-scaled padding.</summary>
         [Category("Appearance")]
         [DefaultValue(typeof(Point), "6, 3")]
         public new Point Padding
@@ -154,6 +163,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Gets or sets the tab item size at 96 DPI. The native control receives a DPI-scaled size.</summary>
         [Category("Appearance")]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public new Size ItemSize
@@ -172,6 +182,8 @@ namespace WinFormsLib
             }
         }
 
+        /// <summary>Gets or sets whether tab headers use the Windows visual style when available.</summary>
+        /// <remarks>Tab headers use the configured colors when this setting is disabled or Windows visual styles are unavailable.</remarks>
         [Category("Appearance")]
         [DefaultValue(true)]
         public bool UseVisualStyles
@@ -187,6 +199,7 @@ namespace WinFormsLib
             }
         } = true;
 
+        /// <inheritdoc/>
         protected override void OnDrawItem(DrawItemEventArgs e)
         {
             base.OnDrawItem(e);
@@ -203,6 +216,21 @@ namespace WinFormsLib
             bool selected = index == SelectedIndex;
             bool hot = index == _hotTabIndex;
             Rectangle bounds = GetTabRect(index);
+            TabPage page = TabPages[index];
+            FontStyle style = selected ? SelectedTabFontStyle : Font.Style;
+            using Font tabFont = new(Font, style);
+            const TextFormatFlags textFlags = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis | TextFormatFlags.SingleLine;
+
+            if (UseVisualStyles && TabRenderer.IsSupported)
+            {
+                TabItemState state = !page.Enabled ? TabItemState.Disabled
+                    : selected ? TabItemState.Selected
+                    : hot ? TabItemState.Hot
+                    : TabItemState.Normal;
+                TabRenderer.DrawTabItem(graphics, bounds, page.Text, tabFont, textFlags, Focused && selected, state);
+                return;
+            }
+
             Color fillColor = selected ? SelectedTabColor : hot ? HotColor : TabColor;
             using (SolidBrush backgroundBrush = new(fillColor))
             {
@@ -217,14 +245,8 @@ namespace WinFormsLib
                 graphics.DrawRectangle(borderPen, border);
             }
 
-            TabPage page = TabPages[index];
             Color textColor = page.Enabled ? ForeColor : SystemColors.GrayText;
-            FontStyle style = selected ? SelectedTabFontStyle : Font.Style;
-
-            using (Font tabFont = new(Font, style))
-            {
-                TextRenderer.DrawText(graphics, page.Text, tabFont, bounds, textColor, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis | TextFormatFlags.SingleLine);
-            }
+            TextRenderer.DrawText(graphics, page.Text, tabFont, bounds, textColor, textFlags);
 
             if (Focused && selected)
             {
@@ -235,6 +257,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
@@ -262,6 +285,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
@@ -276,6 +300,7 @@ namespace WinFormsLib
             }
         }
 
+        /// <inheritdoc/>
         protected override void OnMouseLeave(EventArgs e)
         {
             base.OnMouseLeave(e);
@@ -285,12 +310,14 @@ namespace WinFormsLib
             InvalidateTab(oldHotTabIndex);
         }
 
+        /// <inheritdoc/>
         protected override void OnSelectedIndexChanged(EventArgs e)
         {
             base.OnSelectedIndexChanged(e);
             Invalidate();
         }
 
+        /// <inheritdoc/>
         protected override void OnFontChanged(EventArgs e)
         {
             base.OnFontChanged(e);
@@ -298,18 +325,21 @@ namespace WinFormsLib
             Invalidate();
         }
 
+        /// <inheritdoc/>
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
             UpdateTabPadding();
         }
 
+        /// <inheritdoc/>
         protected override void OnHandleDestroyed(EventArgs e)
         {
             base.OnHandleDestroyed(e);
             ReleaseLayoutFont();
         }
 
+        /// <inheritdoc/>
         protected override void OnDpiChangedAfterParent(EventArgs e)
         {
             base.OnDpiChangedAfterParent(e);
@@ -340,6 +370,7 @@ namespace WinFormsLib
             UpdateLayoutFont();
         }
 
+        /// <summary>Recalculates DPI-scaled tab metrics, performs layout, and requests a repaint of the control and its children.</summary>
         public void RefreshTabLayout()
         {
             UpdateTabPadding();
