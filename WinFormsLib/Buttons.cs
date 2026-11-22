@@ -149,27 +149,30 @@ namespace WinFormsLib
             /// <summary>Represents the Remove command.</summary>
             [GlobalStringValue("Remove")]
             Remove = 1 << 1,
-            /// <summary>Represents the Rename command.</summary>
-            [GlobalStringValue("Rename")]
-            Rename = 1 << 2,
-            /// <summary>Represents the Move Up command.</summary>
-            [GlobalStringValue("MoveUp")]
-            MoveUp = 1 << 3,
-            /// <summary>Represents the Move Down command.</summary>
-            [GlobalStringValue("MoveDown")]
-            MoveDown = 1 << 4,
-            /// <summary>Represents the Sort command.</summary>
-            [GlobalStringValue("Sort")]
-            Sort = 1 << 5,
-            /// <summary>Represents the Edit command.</summary>
-            [GlobalStringValue("Edit")]
-            Edit = 1 << 6,
-            /// <summary>Represents the Move command.</summary>
-            [GlobalStringValue("Move")]
-            Move = 1 << 7,
             /// <summary>Represents the Clear command.</summary>
             [GlobalStringValue("Clear")]
-            Clear = 1 << 8
+            Clear = 1 << 2,
+            /// <summary>Represents the Rename command.</summary>
+            [GlobalStringValue("Rename")]
+            Rename = 1 << 3,
+            /// <summary>Represents the Move Up command.</summary>
+            [GlobalStringValue("MoveUp")]
+            MoveUp = 1 << 4,
+            /// <summary>Represents the Move Down command.</summary>
+            [GlobalStringValue("MoveDown")]
+            MoveDown = 1 << 5,
+            /// <summary>Represents the Sort command.</summary>
+            [GlobalStringValue("Sort")]
+            Sort = 1 << 6,
+            /// <summary>Represents the Edit command.</summary>
+            [GlobalStringValue("Edit")]
+            Edit = 1 << 7,
+            /// <summary>Represents the Move command.</summary>
+            [GlobalStringValue("Move")]
+            Move = 1 << 8,
+            /// <summary>Represents the Copy command.</summary>
+            [GlobalStringValue("Copy")]
+            Copy = 1 << 9
         }
 
         /// <summary>Defines preset groups of editing commands.</summary>
@@ -191,7 +194,9 @@ namespace WinFormsLib
             /// <summary>Includes Add, Remove, Move Up, Move Down, Sort, Edit.</summary>
             AddRemoveMoveUpMoveDownSortEdit = EditButton.Add | EditButton.Remove | EditButton.MoveUp | EditButton.MoveDown | EditButton.Sort | EditButton.Edit,
             /// <summary>Includes Remove, Clear.</summary>
-            RemoveClear = EditButton.Remove | EditButton.Clear
+            RemoveClear = EditButton.Remove | EditButton.Clear,
+            /// <summary>Includes Remove, Clear, Move Up, Move Down, Copy.</summary>
+            RemoveClearMoveUpMoveDownCopy = RemoveClear | EditButton.MoveUp | EditButton.MoveDown | EditButton.Copy
         }
 
         private static Button? GetButton(string globalStringValue, Font? font = null, Padding? margin = null)

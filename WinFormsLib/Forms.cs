@@ -88,10 +88,30 @@ namespace WinFormsLib
             /// <summary>The dialog's main layout container.</summary>
             protected readonly TableLayoutPanel MainTableLayoutPanel = new();
 
+            private protected virtual bool PrepareLayoutOnLoad => false;
+
+            /// <inheritdoc/>
+            protected override void OnLoad(EventArgs e)
+            {
+                base.OnLoad(e);
+                if (PrepareLayoutOnLoad)
+                {
+                    PrepareDialogLayout();
+                }
+            }
+
             /// <inheritdoc/>
             protected override void OnShown(EventArgs e)
             {
                 base.OnShown(e);
+                if (!PrepareLayoutOnLoad)
+                {
+                    PrepareDialogLayout();
+                }
+            }
+
+            private void PrepareDialogLayout()
+            {
                 UpdateDialogLayout();
                 this.CenterOnScreen();
             }
@@ -142,20 +162,22 @@ namespace WinFormsLib
 
             private int ScaleLogical(int value) => (int)Math.Round(value * DeviceDpi / 96d);
 
-            private Padding ScaleLogical(Padding value) => new(
+            private protected Padding ScaleLogical(Padding value) => new(
                 ScaleLogical(value.Left),
                 ScaleLogical(value.Top),
                 ScaleLogical(value.Right),
                 ScaleLogical(value.Bottom));
 
-            private Size ScaleLogical(Size value) => new(ScaleLogical(value.Width), ScaleLogical(value.Height));
+            private protected Size ScaleLogical(Size value) => new(ScaleLogical(value.Width), ScaleLogical(value.Height));
 
-            private void UpdateDpiLayout()
+            private protected virtual Padding DialogButtonMargin => PADDING_MINIMUM;
+
+            private protected virtual void UpdateDpiLayout()
             {
                 Button[] buttons = [.. DialogFlowLayoutPanel.Controls.OfType<Button>()];
                 if (buttons.Length > 0)
                 {
-                    Padding buttonMargin = ScaleLogical(PADDING_MINIMUM);
+                    Padding buttonMargin = ScaleLogical(DialogButtonMargin);
                     Size buttonMinimumSize = ScaleLogical(BUTTON_SIZE_MINIMUM);
                     Size buttonSize = GetMaxSize([.. buttons.Select(button => button.Text)], Font, buttonMargin, buttonMinimumSize);
                     foreach (Button button in buttons)
@@ -765,6 +787,56 @@ namespace WinFormsLib
         /// <summary>Edits a list and writes the edited items back on confirmation.</summary>
         public class EditListDialog : MessageDialog
         {
+            private protected override bool PrepareLayoutOnLoad => true;
+
+            private protected override Padding DialogButtonMargin =>
+                new(11, 0, 0, 0);
+
+            private protected override void UpdateDpiLayout()
+            {
+                base.UpdateDpiLayout();
+                MainTableLayoutPanel.Padding = ScaleLogical(new Padding(14, 12, 12, 12));
+                EditTableLayoutPanel.Margin = Padding.Empty;
+                DialogFlowLayoutPanel.Margin = ScaleLogical(new Padding(0, 12, 0, 0));
+                EditFlowLayoutPanel.Margin = ScaleLogical(new Padding(13, 0, 0, 0));
+                if (EditTableLayoutPanel.Parent is GroupBox editGroupBox)
+                {
+                    editGroupBox.Padding = ScaleLogical(new Padding(16, 6, 13, 16));
+                    EditListBox.Margin = Padding.Empty;
+                }
+
+                Button[] editButtons = [.. EditFlowLayoutPanel.Controls.OfType<Button>()];
+                Size editButtonMinimumSize = ScaleLogical(new Size(116, 30));
+                Size editButtonSize = GetMaxSize([.. editButtons.Select(button => button.Text)],
+                    EditFlowLayoutPanel.Font, ScaleLogical(PADDING_MINIMUM), editButtonMinimumSize);
+                Padding editButtonGap = ScaleLogical(new Padding(0, 12, 0, 0));
+                bool firstButton = true;
+                foreach (Button button in editButtons)
+                {
+                    button.MinimumSize = editButtonMinimumSize;
+                    button.Size = editButtonSize;
+                    button.Margin = firstButton ? Padding.Empty : editButtonGap;
+                    firstButton = false;
+                }
+
+                UpdateListWidthLimits(editButtons.Length == 0 ? 0 : editButtonSize.Width);
+            }
+
+            private void UpdateListWidthLimits(int editColumnWidth)
+            {
+                int minimumWidth = ScaleLogical(new Size(128, 0)).Width;
+                int reservedWidth = Width - ClientSize.Width + MainTableLayoutPanel.Padding.Horizontal
+                    + EditListBox.Margin.Horizontal + EditFlowLayoutPanel.Margin.Horizontal + editColumnWidth;
+                if (EditTableLayoutPanel.Parent is GroupBox editGroupBox)
+                {
+                    reservedWidth += editGroupBox.Padding.Horizontal;
+                }
+
+                int maximumWidth = Math.Max(minimumWidth, Screen.FromControl(this).WorkingArea.Width - reservedWidth);
+                EditListBox.MinimumSize = new(minimumWidth, 0);
+                EditListBox.MaximumSize = new(maximumWidth, 0);
+            }
+
             /// <summary>The container for the list and its editing buttons.</summary>
             protected readonly TableLayoutPanel EditTableLayoutPanel;
             /// <summary>The container for the editing buttons.</summary>
@@ -775,19 +847,16 @@ namespace WinFormsLib
             private readonly List<object> _items;
 
             /// <inheritdoc/>
-            protected override void OnShown(EventArgs e)
+            protected override void OnLoad(EventArgs e)
             {
                 Items.Clear();
                 Items.AddRange([.. _items]);
-                if (Items.Count == 0)
-                {
-                    UpdateEditButtons();
-                }
-                else
+                if (Items.Count != 0)
                 {
                     SelectedIndex = 0;
                 }
-                base.OnShown(e);
+                UpdateEditButtons();
+                base.OnLoad(e);
             }
 
             /// <inheritdoc/>
@@ -844,6 +913,13 @@ namespace WinFormsLib
             {
                 Items.Clear();
                 UpdateEditButtons();
+            }
+
+            private void CopyItems(object? sender, EventArgs e)
+            {
+                string text = string.Join(Environment.NewLine,
+                    Items.Cast<object>().Select(item => EditListBox.GetItemText(item)?.ReplaceLineEndings(" ")));
+                Clipboard.SetDataObject(new DataObject(DataFormats.UnicodeText, text), true);
             }
 
             private async void RenameItemAsync(object? sender, EventArgs e)
@@ -904,6 +980,7 @@ namespace WinFormsLib
                             editButton.Enabled = hasItemSelected;
                             break;
                         case EditButton.Clear:
+                        case EditButton.Copy:
                             editButton.Enabled = Items.Count != 0;
                             break;
                         case EditButton.MoveUp:
@@ -953,7 +1030,7 @@ namespace WinFormsLib
 
             /// <summary>Initializes the dialog with the supplied settings.</summary>
             /// <param name="items">The list that receives the edited items on confirmation.</param>
-            /// <param name="caption">The text displayed in the dialog.</param>
+            /// <param name="caption">The heading above the list and editing buttons, or empty to omit the group box.</param>
             /// <param name="title">The dialog title.</param>
             /// <param name="font">The font to use, or null to use the library default.</param>
             /// <param name="editButtons">The editing buttons to include.</param>
@@ -965,7 +1042,7 @@ namespace WinFormsLib
                 Font? font = null,
                 EditButtons editButtons = EditButtons.AddRemoveMoveUpMoveDownSort
             )
-            : base(caption, title, font, DialogResultFlags.OKCancel)
+            : base(title: title, font: font, buttons: DialogResultFlags.OKCancel)
             {
                 _items = items;
 
@@ -974,10 +1051,9 @@ namespace WinFormsLib
                     Name = "EditListBox",
                     AutoSize = true,
                     Dock = DockStyle.Fill,
-                    BorderStyle = BorderStyle.FixedSingle,
+                    BorderStyle = BorderStyle.Fixed3D,
                     IntegralHeight = false,
                     Margin = PADDING_DEFAULT,
-                    MinimumSize = BOX_SIZE_MINIMUM,
                     HorizontalScrollbar = true,
                     TabStop = true,
                     TabIndex = 2
@@ -1001,25 +1077,37 @@ namespace WinFormsLib
                     Dock = DockStyle.Fill,
                     ColumnCount = 2,
                     RowCount = 1,
-                    Margin = PADDING_MINIMUM,
+                    Margin = new(PADDING_MINIMUM.Left, PADDING_MINIMUM.Top, 0, PADDING_MINIMUM.Bottom),
                     TabStop = false
                 };
-                for (int i = 0; i < EditTableLayoutPanel.ColumnCount; i++)
-                {
-                    _ = EditTableLayoutPanel.ColumnStyles.Add(new(SizeType.AutoSize));
-                }
+                _ = EditTableLayoutPanel.ColumnStyles.Add(new(SizeType.Percent, 100F));
+                _ = EditTableLayoutPanel.ColumnStyles.Add(new(SizeType.AutoSize));
                 for (int i = 0; i < EditTableLayoutPanel.RowCount; i++)
                 {
                     _ = EditTableLayoutPanel.RowStyles.Add(new(SizeType.AutoSize));
                 }
-                if (string.IsNullOrEmpty(caption))
-                {
-                    MainTableLayoutPanel.Controls.Remove(CaptionPanel);
-                    CaptionPanel.Dispose();
-                }
-                MainTableLayoutPanel.Controls.Add(EditTableLayoutPanel, 0, 1);
+                MainTableLayoutPanel.Controls.Remove(CaptionPanel);
+                CaptionPanel.Dispose();
                 EditTableLayoutPanel.Controls.Add(EditListBox, 0, 0);
                 EditTableLayoutPanel.Controls.Add(EditFlowLayoutPanel, 1, 0);
+                if (string.IsNullOrEmpty(caption))
+                {
+                    MainTableLayoutPanel.Controls.Add(EditTableLayoutPanel, 0, 1);
+                }
+                else
+                {
+                    GroupBox editGroupBox = new()
+                    {
+                        AutoSize = true,
+                        AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                        Dock = DockStyle.Fill,
+                        Margin = Padding.Empty,
+                        TabStop = false,
+                        Text = caption
+                    };
+                    editGroupBox.Controls.Add(EditTableLayoutPanel);
+                    MainTableLayoutPanel.Controls.Add(editGroupBox, 0, 1);
+                }
                 EditListBox.SelectedIndexChanged += (sender, e) => UpdateEditButtons();
                 EditListBox.Disposed += (sender, e) => EditListBox.ClearEventHandlers();
                 foreach (Button editButton in DialogEditButtons.AddButtons(EditFlowLayoutPanel, editButtons))
@@ -1049,6 +1137,9 @@ namespace WinFormsLib
                             break;
                         case EditButton.Clear:
                             editButton.Click += ClearItems;
+                            break;
+                        case EditButton.Copy:
+                            editButton.Click += CopyItems;
                             break;
                     }
                 }
